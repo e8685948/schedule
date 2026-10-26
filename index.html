@@ -1,0 +1,2532 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>E.M.A 龍聖戦 日程</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111820; font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; }
+  #top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; background: #1a1a1a; color: #fef9ed; padding-top: env(safe-area-inset-top, 0px); }
+  #bar { display: flex; gap: 6px; padding: 6px 8px; }
+  #bar button { flex: 1; min-height: 38px; border: 1px solid #8b2818; border-radius: 9px; background: transparent; color: #fef9ed; font-size: 13px; font-weight: 700; cursor: pointer; }
+  #bar button.on { background: #8b2818; }
+  #pubbar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #8b6914; font-size: 11px; line-height: 1.4; }
+  #pubbar[hidden] { display: none; }
+  #pubbar span { flex: 1; }
+  #pubbar button { min-height: 32px; padding: 0 10px; border: none; border-radius: 7px; background: #fef9ed; color: #5a3a00; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  iframe { position: fixed; left: 0; right: 0; top: 52px; bottom: 0; width: 100%; height: calc(100% - 52px); border: 0; background: #f3ead7; }
+  iframe[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="bar"><button data-t="viewer" class="on">📅 日程表</button><button data-t="gen">🛠 日程作成</button></div>
+  <div id="pubbar" hidden><span>プレビュー中：まだ会員には見えません。公開するには保存したHTMLをGitHubの index.html に差し替えてください。</span><button id="dl">公開用に保存</button><button id="discard">破棄</button></div>
+</div>
+<iframe id="f-viewer" title="日程表"></iframe>
+<iframe id="f-gen" title="日程作成" hidden></iframe>
+
+<script type="application/json" id="published-data">{}</script>
+<script type="text/plain" id="src-viewer"><!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026年EMA龍聖戦 試合日程</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@400;600;700;800&family=Noto+Serif+JP:wght@400;600;900&family=Yuji+Mai&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Shippori Mincho B1', serif;
+    background: #0a0a0a;
+    padding: 20px 12px;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .poster {
+    width: 100%;
+    max-width: 760px;
+    background: radial-gradient(ellipse at top, #fef9ed 0%, #f5e8c8 100%);
+    position: relative;
+    padding: 32px 24px 24px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .poster::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      repeating-linear-gradient(45deg, transparent 0, transparent 2px, rgba(139,90,43,0.02) 2px, rgba(139,90,43,0.02) 4px),
+      repeating-linear-gradient(-45deg, transparent 0, transparent 2px, rgba(139,90,43,0.02) 2px, rgba(139,90,43,0.02) 4px);
+  }
+  .poster::after {
+    content: ''; position: absolute; inset: 10px; pointer-events: none;
+    border: 2px solid #8b2818;
+  }
+  .corner { position: absolute; width: 22px; height: 22px; border: 3px solid #8b2818; z-index: 2; }
+  .corner.tl { top: 14px; left: 14px; border-right: none; border-bottom: none; }
+  .corner.tr { top: 14px; right: 14px; border-left: none; border-bottom: none; }
+  .corner.bl { bottom: 14px; left: 14px; border-right: none; border-top: none; }
+  .corner.br { bottom: 14px; right: 14px; border-left: none; border-top: none; }
+
+  /* ヘッダー */
+  .header {
+    text-align: center; position: relative;
+    padding-bottom: 14px; margin-bottom: 16px;
+    border-bottom: 1px solid #8b2818;
+  }
+  .stamp {
+    position: absolute; top: -14px; right: -6px;
+    width: 52px; height: 52px;
+    background: #8b2818; color: #fef9ed;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Yuji Mai', serif; font-size: 16px; line-height: 1.1;
+    transform: rotate(-6deg);
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.15);
+    letter-spacing: 2px; z-index: 3;
+  }
+  .title {
+    font-family: 'Noto Serif JP', serif; font-weight: 900;
+    font-size: clamp(18px, 5.4vw, 30px); color: #1a1a1a;
+    letter-spacing: clamp(1px, 0.7vw, 5px); line-height: 1.2;
+    padding: 0 44px; white-space: nowrap;
+  }
+  .title .accent { color: #8b2818; }
+  .subtitle {
+    font-size: 10px; color: #5a4a3a; letter-spacing: 2px;
+    margin-top: 5px; white-space: nowrap;
+  }
+
+  /* 年月切替 */
+  .month-nav {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; margin-top: 12px;
+  }
+  .month {
+    display: flex; align-items: baseline; justify-content: center; gap: 3px;
+    min-width: 100px; padding: 6px 18px 9px; line-height: 1;
+    background: #1a1a1a; color: #fef9ed; border-radius: 3px;
+    box-shadow: 2px 3px 0 rgba(0,0,0,0.18);
+    font-family: 'Noto Serif JP', serif;
+  }
+  .m-year { font-size: 13px; letter-spacing: 1px; opacity: 0.85; margin-right: 8px; font-weight: 600; }
+  .m-num { font-size: 38px; font-weight: 900; color: #ffe08a; }
+  .m-unit { font-size: 16px; font-weight: 700; }
+  .month-btn {
+    min-width: 66px; height: 34px; padding: 0 12px; border-radius: 17px;
+    background: #8b2818; color: #fef9ed; border: none; cursor: pointer;
+    font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 12px; white-space: nowrap;
+    box-shadow: 1px 2px 0 rgba(0,0,0,0.15);
+  }
+  .month-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .month-select {
+    display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px;
+  }
+  .month-select select {
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid #8b2818; border-radius: 3px;
+    font-family: 'Noto Serif JP', serif; font-size: 13px; color: #1a1a1a;
+  }
+  .select-hint { font-size: 10px; color: #5a4a3a; white-space: nowrap; }
+
+  /* タブ */
+  .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 14px; position: relative; z-index: 1; }
+  .tab {
+    padding: 8px 22px;
+    background: rgba(255,255,255,0.4);
+    border: 1px solid #8b2818; color: #8b2818;
+    font-family: 'Noto Serif JP', serif; font-weight: 600;
+    font-size: 13px; letter-spacing: 2px; cursor: pointer; border-radius: 2px;
+  }
+  .tab.active { background: #8b2818; color: #fef9ed; box-shadow: 1px 2px 0 rgba(0,0,0,0.15); }
+
+  /* 検索 */
+  .search-box { position: relative; margin-bottom: 12px; z-index: 1; }
+  .search-input {
+    width: 100%; padding: 8px 36px 8px 32px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid #8b2818; border-radius: 4px;
+    font-family: 'Shippori Mincho B1', serif; font-size: 14px; color: #1a1a1a; outline: none;
+  }
+  .search-input:focus { background: rgba(255,255,255,0.9); box-shadow: 0 0 0 2px rgba(139,40,24,0.2); }
+  .search-icon { position: absolute; left: 10px; top: 19px; transform: translateY(-50%); font-size: 14px; pointer-events: none; }
+  .search-clear {
+    position: absolute; right: 6px; top: 19px; transform: translateY(-50%);
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #8b2818; color: #fef9ed; border: none;
+    font-size: 12px; cursor: pointer; display: none; line-height: 1;
+  }
+  .search-clear.visible { display: block; }
+  .search-result {
+    margin-top: 6px; padding: 6px 10px;
+    background: rgba(139,40,24,0.08); border-left: 2px solid #8b2818;
+    font-size: 12px; color: #3a2818; line-height: 1.7; display: none;
+  }
+  .search-result.visible { display: block; }
+  .search-result strong { color: #8b2818; }
+  .year-total { font-size: 11px; color: #8b6914; white-space: nowrap; }
+
+  /* リーグフィルター */
+  .league-filter { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; position: relative; z-index: 1; }
+  .filter-btn {
+    padding: 5px 16px;
+    background: rgba(255,255,255,0.4);
+    border: 1px solid #5a4a3a; color: #5a4a3a;
+    font-family: 'Noto Serif JP', serif; font-weight: 600;
+    font-size: 11px; letter-spacing: 1px; cursor: pointer; border-radius: 2px;
+  }
+  .filter-btn.active { background: #1a1a1a; color: #fef9ed; border-color: #1a1a1a; }
+  .filter-btn[data-league="a1"].active { background: #8b2818; border-color: #8b2818; }
+  .filter-btn[data-league="a2"].active { background: #1a3a5c; border-color: #1a3a5c; }
+  body.filter-a1 .is-a2, body.filter-a2 .is-a1 { display: none !important; }
+  body.filter-a1 .only-a2, body.filter-a2 .only-a1 { opacity: 0.25; }
+
+  .view { display: none; position: relative; z-index: 1; }
+  .view.active { display: block; }
+
+  .empty-month {
+    padding: 40px 16px; text-align: center;
+    background: rgba(255,255,255,0.45);
+    border: 1px dashed rgba(139,40,24,0.4);
+    font-family: 'Noto Serif JP', serif; font-size: 13px;
+    color: #5a4a3a; letter-spacing: 2px; line-height: 1.8;
+  }
+
+  /* ===== カレンダー（土日のみ） ===== */
+  .weekdays, .days { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .weekdays { margin-bottom: 6px; }
+  .weekday {
+    text-align: center; padding: 7px 0;
+    font-family: 'Noto Serif JP', serif; font-weight: 700;
+    font-size: 13px; letter-spacing: 3px;
+    background: rgba(139,40,24,0.08); border-radius: 2px;
+  }
+  .weekday.sat { color: #1e5b8b; }
+  .weekday.sun { color: #8b2818; }
+  .day {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(139,40,24,0.2); border-radius: 3px;
+    padding: 10px 8px; min-height: 90px;
+    display: flex; flex-direction: column; min-width: 0;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+  }
+  .day.blank { background: transparent; border: 1px dashed rgba(139,40,24,0.12); }
+  .day.none { opacity: 0.45; }
+  .day.has-match { background: rgba(255,250,240,0.85); border-color: #8b2818; }
+  .day.rest { background: rgba(0,0,0,0.04); opacity: 0.55; }
+  .day.study { background: rgba(201,162,39,0.12); border-color: #c9a227; }
+  .day.clickable { cursor: pointer; }
+  .day.clickable:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(139,40,24,0.3); }
+  .day-num {
+    font-family: 'Noto Serif JP', serif; font-weight: 800;
+    font-size: 22px; color: #1a1a1a; line-height: 1;
+    margin-bottom: 8px; padding-bottom: 6px;
+    border-bottom: 1px dashed rgba(139,40,24,0.3);
+  }
+  .day-num.sat { color: #1e5b8b; }
+  .day-num.sun { color: #8b2818; }
+  .leagues { display: flex; flex-direction: column; gap: 6px; }
+  .league-row { display: flex; flex-direction: column; gap: 3px; }
+  .league-row-header { display: flex; align-items: center; gap: 6px; }
+  .league-badge {
+    width: 28px; text-align: center; color: #fef9ed;
+    font-family: 'Noto Serif JP', serif; font-weight: 700;
+    font-size: 11px; padding: 2px 0; border-radius: 2px;
+  }
+  .league-badge.a1 { background: #8b2818; }
+  .league-badge.a2 { background: #1a3a5c; }
+  .league-time { color: #5a4a3a; font-size: 11px; }
+  .league-players { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 3px; align-items: stretch; }
+  .rest-label, .study-label {
+    text-align: center; margin-top: 10px;
+    font-family: 'Noto Serif JP', serif; font-size: 14px; letter-spacing: 3px; color: #5a4a3a;
+  }
+  .study-label { color: #8b6914; font-weight: 700; }
+  .study-label .time-line { display: block; font-size: 11px; color: #5a4a3a; font-weight: 400; margin-top: 4px; letter-spacing: 1px; }
+
+  /* 木札カード（共通） */
+  .cal-player, .player {
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(101,67,33,0.08) 0px, rgba(101,67,33,0.08) 1px, transparent 1px, transparent 3px,
+        rgba(139,90,43,0.05) 3px, rgba(139,90,43,0.05) 4px, transparent 4px, transparent 7px),
+      radial-gradient(ellipse 60% 20% at 30% 70%, rgba(101,67,33,0.15), transparent),
+      radial-gradient(ellipse 40% 15% at 70% 30%, rgba(101,67,33,0.12), transparent),
+      linear-gradient(180deg, #d4a574 0%, #c19058 40%, #a87648 100%);
+    border: 1px solid #6b4423; border-radius: 2px;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,220,180,0.4), inset 0 -2px 3px rgba(60,30,10,0.3);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    min-width: 0; overflow: hidden; position: relative; text-align: center;
+  }
+  .cal-player { padding: 5px 1px 5px; }
+  .player { padding: 10px 2px 8px; }
+  .cal-player::before, .player::before {
+    content: ''; position: absolute; inset: 2px; pointer-events: none;
+    border: 1px solid rgba(60,30,10,0.35); border-radius: 1px;
+  }
+  .cal-seat, .seat {
+    font-family: 'Yuji Mai', serif; color: #fef9ed; line-height: 1;
+    border-radius: 50%; background: #8b2818;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.2);
+    position: relative; z-index: 1; flex-shrink: 0;
+  }
+  .cal-seat { width: 16px; height: 16px; font-size: 9px; margin-bottom: 4px; }
+  .seat { width: 24px; height: 24px; font-size: 13px; margin-bottom: 8px; }
+  .seat-e { background: #8b2818; }
+  .seat-s { background: #2d6b3f; }
+  .seat-w { background: #c9a227; }
+  .seat-n { background: #1a3a5c; }
+  .cal-name, .player-name {
+    font-family: 'Shippori Mincho B1', serif; font-weight: 700; color: #2a1810;
+    writing-mode: vertical-rl; -webkit-writing-mode: vertical-rl;
+    text-orientation: upright; -webkit-text-orientation: upright;
+    position: relative; z-index: 1;
+    text-shadow: 0 1px 0 rgba(255,220,180,0.5);
+  }
+  .cal-name { font-size: 10px; line-height: 1.2; letter-spacing: 0.5px; }
+  .player-name { font-size: 15px; line-height: 1.3; letter-spacing: 2px; padding: 1px 0; }
+
+  .weekday-head {
+    margin: 12px 0 6px; padding: 6px 0; text-align: center;
+    font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 13px;
+    letter-spacing: 3px; color: #5a4a3a; background: rgba(139,40,24,0.08); border-radius: 2px;
+  }
+  .wd-label { font-size: 12px; margin-left: 3px; color: #5a4a3a; }
+  .cal-player:not(:has(.cal-seat)) { padding-top: 6px; }
+  .player:not(:has(.seat)) { padding-top: 10px; }
+  .seat-r { background: #6b5b7b; }
+  .cal-name, .player-name, .card-count, .card-note { flex-shrink: 0; }
+  .cal-name, .player-name { padding-bottom: 6px; }
+  .player .card-count, .player .card-note { font-size: 11px; }
+  .card-count, .card-note {
+    position: relative; z-index: 1; margin-top: auto;
+    font-size: 9px; line-height: 1; white-space: nowrap;
+  }
+  .card-count { color: #2a1810; font-weight: 700; padding-top: 3px; }
+  .card-count + .card-note { margin-top: 3px; }
+  .card-note { padding: 2px 3px; border-radius: 2px; font-weight: 700; color: #2a1810; }
+  .card-note.first { background: #f4c7c7; }
+  .card-note.second { background: #b7d9a8; }
+  .legend-dot.first { background: #f4c7c7; }
+  .legend-dot.second { background: #b7d9a8; }
+  .legend-dot.rote { background: #6b5b7b; border-radius: 50%; }
+  .staff {
+    display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 5px;
+    font-size: 10px; color: #3a2818; line-height: 1.4;
+  }
+  .staff b {
+    display: inline-block; margin-right: 4px; padding: 0 4px;
+    background: #5a4a3a; color: #fef9ed; font-weight: 600; font-size: 9px; border-radius: 2px;
+  }
+  .match-info .staff { font-size: 11px; justify-content: center; }
+  .legend-num { font-weight: 700; color: #2a1810; font-size: 11px; }
+  /* 札タッチで揺れる */
+  #slides .player, #modal-body .player { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .player.swing {
+    transform-origin: 50% -6px;
+    z-index: 5;
+    animation: fuda-swing 1.1s cubic-bezier(.36,.07,.19,.97);
+  }
+  @keyframes fuda-swing {
+    0%   { transform: rotate(0deg); }
+    15%  { transform: rotate(9deg); }
+    32%  { transform: rotate(-7deg); }
+    48%  { transform: rotate(5deg); }
+    63%  { transform: rotate(-3deg); }
+    78%  { transform: rotate(1.5deg); }
+    90%  { transform: rotate(-0.5deg); }
+    100% { transform: rotate(0deg); }
+  }
+  @media (prefers-reduced-motion: reduce) { .player.swing { animation: none; } }
+  /* ===== 日別モード：スクロールなしで1画面に収める ===== */
+  .fit { transform-origin: top center; }
+  body.mode-swipe { padding: 0; height: 100vh; height: 100dvh; overflow: hidden; align-items: stretch; }
+  body.mode-swipe .poster {
+    height: 100vh; height: 100dvh; display: flex; flex-direction: column;
+    padding: 16px 16px 10px; box-shadow: none;
+  }
+  body.mode-swipe .poster::after { inset: 6px; }
+  body.mode-swipe .corner { width: 16px; height: 16px; border-width: 2px; }
+  body.mode-swipe .corner.tl, body.mode-swipe .corner.tr { top: 9px; }
+  body.mode-swipe .corner.bl, body.mode-swipe .corner.br { bottom: 9px; }
+  body.mode-swipe .corner.tl, body.mode-swipe .corner.bl { left: 9px; }
+  body.mode-swipe .corner.tr, body.mode-swipe .corner.br { right: 9px; }
+  body.mode-swipe .header { padding-bottom: 6px; margin-bottom: 8px; flex-shrink: 0; }
+  body.mode-swipe .title { font-size: 17px; letter-spacing: 2px; padding: 0 40px; }
+  body.mode-swipe .subtitle, body.mode-swipe .month-select { display: none; }
+  body.mode-swipe .stamp { width: 34px; height: 34px; font-size: 10px; top: 0; right: 2px; }
+  body.mode-swipe .month-nav { margin-top: 5px; gap: 6px; }
+  body.mode-swipe .month { min-width: 0; padding: 3px 12px 4px; }
+  body.mode-swipe .m-year { font-size: 10px; margin-right: 5px; }
+  body.mode-swipe .m-num { font-size: 20px; }
+  body.mode-swipe .m-unit { font-size: 11px; }
+  body.mode-swipe .month-btn { min-width: 50px; height: 24px; padding: 0 8px; font-size: 11px; }
+  body.mode-swipe .tabs { margin-bottom: 8px; flex-shrink: 0; }
+  body.mode-swipe .tab { padding: 5px 18px; font-size: 12px; }
+  body.mode-swipe .search-box { margin-bottom: 6px; flex-shrink: 0; }
+  body.mode-swipe .search-input { padding: 5px 34px 5px 30px; font-size: 13px; }
+  body.mode-swipe .search-icon, body.mode-swipe .search-clear { top: 15px; }
+  body.mode-swipe .search-result { font-size: 11px; padding: 4px 8px; margin-top: 4px; max-height: 3.6em; overflow-y: auto; }
+  body.mode-swipe .league-filter { margin-bottom: 8px; flex-shrink: 0; }
+  body.mode-swipe .filter-btn { padding: 3px 14px; }
+  body.mode-swipe #view-swipe.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  body.mode-swipe .schedule { flex: 1; min-height: 0; }
+  body.mode-swipe .slides { height: 100%; }
+  body.mode-swipe .day-card { height: 100%; overflow: hidden; padding: 10px 12px; }
+  body.mode-swipe .nav { margin-top: 6px; flex-shrink: 0; }
+  body.mode-swipe .nav-btn { width: 30px; height: 30px; font-size: 15px; }
+  body.mode-swipe .dots { margin-top: 4px; flex-shrink: 0; }
+  body.mode-swipe #legend { margin-top: 6px; padding: 4px 8px; flex-shrink: 0; }
+  body.mode-swipe .legend { gap: 2px 8px; font-size: 9px; }
+  body.mode-swipe .legend-dot { width: 9px; height: 9px; }
+  body.mode-swipe .legend-num { font-size: 9px; }
+  body.mode-swipe .footer { margin-top: 6px; padding-top: 4px; font-size: 8px; line-height: 1.4; flex-shrink: 0; }
+  body.mode-swipe .footer strong { font-size: 9px; }
+  body.mode-swipe .footer br { display: none; }
+  body.mode-swipe .footer strong::after { content: '　'; }
+  .cal-event, .slide-event {
+    font-size: 10px; color: #8b6914; line-height: 1.4;
+    padding: 3px 6px; background: rgba(201,162,39,0.12); border-left: 2px solid #c9a227;
+  }
+  .cal-event b, .slide-event b { margin-right: 6px; color: #6b4f0a; }
+  .slide-event { font-size: 12px; padding: 6px 10px; }
+  /* ===== 自分を登録 ===== */
+  .me-bar { margin-bottom: 12px; position: relative; z-index: 1; }
+  .me-register {
+    width: 100%; padding: 8px 10px; cursor: pointer;
+    background: rgba(255,255,255,0.5); border: 1px dashed #8b2818; border-radius: 4px;
+    font-family: 'Shippori Mincho B1', serif; font-size: 12px; color: #8b2818;
+  }
+  .me-info {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 4px;
+    background: linear-gradient(90deg, #8b2818, #a8321f); color: #fef9ed;
+    box-shadow: 0 2px 6px rgba(139,40,24,0.3);
+  }
+  .me-text { flex: 1; min-width: 0; font-size: 12px; line-height: 1.5; }
+  .me-name { font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 13px; }
+  .me-next { display: block; font-size: 11px; opacity: 0.95; }
+  .me-next b { color: #ffe08a; }
+  .me-btn {
+    flex-shrink: 0; padding: 4px 9px; cursor: pointer;
+    background: #fef9ed; color: #8b2818; border: none; border-radius: 3px;
+    font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 11px;
+  }
+  body:not(.mode-swipe) #me-filter { display: none; }
+  .me-btn { white-space: nowrap; }
+  .me-btn.sub { background: transparent; color: #fef9ed; border: 1px solid rgba(254,249,237,0.6); }
+  /* 自分の札 */
+  .player.is-me, .cal-player.is-me {
+    box-shadow: 0 0 0 2px #e03a1e, 0 0 10px 2px rgba(224,58,30,0.55), 0 2px 3px rgba(0,0,0,0.3);
+  }
+  .player.is-me::after, .cal-player.is-me::after {
+    content: '★'; position: absolute; top: 1px; right: 2px; z-index: 2;
+    font-size: 10px; color: #e03a1e; text-shadow: 0 0 2px #fff;
+  }
+  .day.me-day .day-num::after {
+    content: '★出番'; margin-left: 6px; padding: 1px 5px; vertical-align: middle;
+    font-size: 10px; font-weight: 700; color: #fef9ed; background: #e03a1e; border-radius: 2px;
+  }
+  .day.me-day { border-color: #e03a1e; border-width: 2px; }
+  /* 名前選択 */
+  .me-picker { max-height: 85vh; overflow-y: auto; }
+  .me-title { font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 16px; text-align: center; color: #1a1a1a; }
+  .me-note { text-align: center; font-size: 11px; color: #5a4a3a; margin: 4px 0 12px; }
+  .me-group { margin-bottom: 12px; }
+  .me-group-title { background: #5a4a3a; font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 12px; color: #fef9ed; padding: 3px 8px; border-radius: 2px; margin-bottom: 6px; }
+  .me-group-title.a1 { background: #8b2818; }
+  .me-group-title.a2 { background: #1a3a5c; }
+  .me-names { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .me-name-btn {
+    padding: 8px 2px; cursor: pointer; border-radius: 3px;
+    background: rgba(255,255,255,0.7); border: 1px solid #c9a227;
+    font-family: 'Shippori Mincho B1', serif; font-weight: 600; font-size: 12px; color: #1a1a1a;
+  }
+  .me-name-btn.current { background: #8b2818; color: #fef9ed; border-color: #8b2818; }
+  .me-clear {
+    display: block; margin: 8px auto 0; padding: 6px 14px; cursor: pointer;
+    background: none; border: 1px solid #5a4a3a; border-radius: 3px; color: #5a4a3a; font-size: 11px;
+  }
+  body.mode-swipe .me-bar { margin-bottom: 6px; flex-shrink: 0; }
+  body.mode-swipe .me-info { padding: 4px 8px; }
+  body.mode-swipe .me-name { font-size: 11px; }
+  body.mode-swipe .me-text { font-size: 10px; line-height: 1.35; }
+  body.mode-swipe .me-next { font-size: 10px; }
+  body.mode-swipe .me-register { padding: 5px 8px; font-size: 11px; }
+  .info-row {
+    margin-top: 14px; padding: 8px 14px;
+    background: rgba(255,255,255,0.4); border-left: 3px solid #8b2818;
+  }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; font-size: 11px; color: #5a4a3a; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 2px; }
+  .legend-dot.a1 { background: #8b2818; }
+  .legend-dot.a2 { background: #1a3a5c; }
+  .legend-dot.study { background: #c9a227; }
+  .legend-dot.rest { background: #999; }
+
+  /* ===== 日別（横スライド） ===== */
+  .schedule { position: relative; overflow: hidden; touch-action: pan-y; width: 100%; }
+  .slides { display: flex; transition: transform 0.4s ease; width: 100%; }
+  .day-card {
+    flex: 0 0 100%; width: 100%;
+    background: rgba(255,255,255,0.5);
+    border-left: 3px solid #8b2818;
+    padding: 12px 14px; position: relative;
+    transition: opacity 0.2s, box-shadow 0.2s;
+  }
+  .day-card.rest, .day-card.study { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+  .day-card.rest { background: rgba(0,0,0,0.04); border-left-color: #999; }
+  .day-card.study { border-left-color: #c9a227; background: rgba(201,162,39,0.08); }
+  .date-block {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    margin-bottom: 8px; padding-bottom: 5px;
+    border-bottom: 1px dashed #8b2818;
+  }
+  .day-card.rest .date-block, .day-card.study .date-block {
+    display: block; text-align: center; border-bottom: none;
+    border-right: 1px dashed #8b2818; padding: 0 10px 0 0; margin: 0;
+  }
+  .date-num { font-family: 'Noto Serif JP', serif; font-weight: 900; font-size: 26px; color: #1a1a1a; line-height: 1; }
+  .date-day { font-size: 11px; color: #5a4a3a; letter-spacing: 1px; }
+  .date-day.sat { color: #1e5b8b; }
+  .date-day.sun { color: #8b2818; }
+  .day-card.rest .date-num, .day-card.study .date-num, .day-card.rest .date-day, .day-card.study .date-day { display: block; }
+  .day-card.rest .date-day, .day-card.study .date-day { margin-top: 4px; }
+  .matches { display: flex; flex-direction: column; gap: 10px; }
+  .match { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: stretch; }
+  .league-tag {
+    width: 46px; padding: 8px 0; text-align: center;
+    font-family: 'Noto Serif JP', serif; font-weight: 700;
+    font-size: 13px; letter-spacing: 1px; line-height: 1.2; color: #fef9ed;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .league-tag.a1 { background: #8b2818; }
+  .league-tag.a2 { background: #1a3a5c; }
+  .league-tag .small { font-size: 9px; display: block; }
+  .match-info { display: flex; flex-direction: column; gap: 5px; justify-content: center; min-width: 0; }
+  .match-header { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .match-time { font-family: 'Noto Serif JP', serif; font-size: 12px; color: #5a4a3a; letter-spacing: 1px; }
+  .hanchan { padding: 2px 8px; background: #1a1a1a; color: #fef9ed; font-size: 10px; border-radius: 2px; letter-spacing: 1px; }
+  .players { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 6px; align-items: stretch; min-width: 0; }
+  .rest-text, .study-text {
+    font-family: 'Noto Serif JP', serif; font-size: 12px;
+    color: #5a4a3a; letter-spacing: 1px; line-height: 1.6; white-space: nowrap;
+  }
+  .study-text { color: #8b6914; font-weight: 600; }
+  .study-time { font-weight: 400; color: #5a4a3a; }
+  .nav { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; }
+  .nav-btn {
+    background: #8b2818; color: #fef9ed; border: none;
+    width: 38px; height: 38px; border-radius: 50%;
+    font-size: 18px; cursor: pointer; line-height: 1;
+    box-shadow: 1px 2px 0 rgba(0,0,0,0.15);
+  }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .nav-info { flex: 1; text-align: center; font-family: 'Noto Serif JP', serif; font-size: 12px; color: #5a4a3a; letter-spacing: 2px; }
+  .nav-info .current { font-size: 15px; font-weight: 700; color: #8b2818; }
+  .dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #d4c4a0; cursor: pointer; }
+  .dot.active { background: #8b2818; transform: scale(1.3); }
+
+  /* 検索ハイライト */
+  .highlight {
+    background: linear-gradient(180deg, #ffeb3b 0%, #fdd835 100%);
+    border-radius: 2px; box-shadow: 0 0 8px rgba(255,235,59,0.6);
+  }
+  .day.match-found { box-shadow: 0 0 0 2px #ffd700, 0 4px 12px rgba(255,215,0,0.4); }
+  .day-card.match-found { box-shadow: -4px 0 0 #ffd700, 0 4px 12px rgba(255,215,0,0.3); }
+  body.searching .day:not(.match-found):not(.blank) { opacity: 0.3; }
+  body.searching .day-card:not(.match-found) { opacity: 0.3; }
+
+  /* モーダル */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.85); padding: 20px; overflow-y: auto;
+  }
+  .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+  .modal-content {
+    width: 100%; max-width: 480px;
+    background: radial-gradient(ellipse at top, #fef9ed 0%, #f5e8c8 100%);
+    border: 2px solid #8b2818; padding: 28px 16px 18px;
+    position: relative; box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+  }
+  .modal-content .day-card { opacity: 1 !important; }
+  .modal-close {
+    position: absolute; top: 8px; right: 8px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #8b2818; color: #fef9ed; border: none;
+    font-size: 16px; cursor: pointer; line-height: 1; z-index: 2;
+  }
+
+  .footer {
+    margin-top: 14px; padding-top: 10px;
+    border-top: 1px solid #8b2818; text-align: center;
+    font-size: 10px; color: #5a4a3a; letter-spacing: 1px; line-height: 1.6;
+    position: relative; z-index: 1;
+  }
+  .footer strong { color: #1a1a1a; font-size: 11px; }
+
+  /* ===== Responsive UI polish ===== */
+  :root { color-scheme: light; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body { background: #111820; }
+  button, input, select { touch-action: manipulation; }
+  button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 3px solid #d7a84b; outline-offset: 2px;
+  }
+  .poster {
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.35);
+  }
+  .poster::after { border-radius: 10px; }
+  .month-btn, .tab, .filter-btn, .nav-btn, .me-btn, .me-register,
+  .search-clear, .modal-close, .me-name-btn, .me-clear {
+    transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active { transform: scale(.97); }
+  .tab, .filter-btn { min-height: 42px; }
+  .search-input { min-height: 46px; border-radius: 10px; }
+  .month { border-radius: 8px; }
+  .month-btn { border-radius: 999px; min-height: 40px; }
+  .day, .day-card { border-radius: 10px; }
+  .day.has-match { box-shadow: 0 3px 10px rgba(80,45,20,.06); }
+  .day-num { display:flex; align-items:center; justify-content:flex-start; gap:5px; }
+  .league-badge, .league-tag { border-radius: 5px; }
+  .player, .cal-player { border-radius: 5px; }
+  .info-row { border-radius: 8px; }
+  .modal-overlay { backdrop-filter: blur(5px); }
+  .modal-content { border-radius: 16px; }
+  .modal-close { position: sticky; float: right; top: 0; }
+  .me-info { border-radius: 10px; }
+  .me-register { min-height: 44px; border-radius: 10px; }
+  .footer { letter-spacing: .04em; }
+
+  @media (max-width: 600px) {
+    body { padding: 0; display: block; background: #f3ead7; }
+    .poster {
+      width: 100%; max-width: none; min-height: 100vh;
+      padding: 24px 12px 18px; border-radius: 0; box-shadow: none;
+    }
+    .poster::after { inset: 5px; border-width: 1px; }
+    .corner { width: 14px; height: 14px; border-width: 2px; }
+    .corner.tl, .corner.tr { top: 8px; }
+    .corner.bl, .corner.br { bottom: 8px; }
+    .corner.tl, .corner.bl { left: 8px; }
+    .corner.tr, .corner.br { right: 8px; }
+    .header { padding: 2px 0 12px; margin: 0 2px 12px; }
+    .title {
+      white-space: normal; padding: 0 38px 0 4px;
+      font-size: clamp(19px, 5.6vw, 27px); letter-spacing: 1px;
+    }
+    .stamp { width: 38px; height: 38px; top: -2px; right: 0; font-size: 11px; }
+    .subtitle { white-space: normal; font-size: 10px; letter-spacing: 1px; }
+    .month-nav { gap: 8px; }
+    .month { flex: 1; max-width: 220px; padding: 7px 10px 8px; }
+    .m-year { font-size: 11px; margin-right: 4px; }
+    .m-num { font-size: 32px; }
+    .m-unit { font-size: 14px; }
+    .month-btn { min-width: 42px; height: 42px; padding: 0 10px; font-size: 18px; }
+    .month-select { gap: 6px; flex-wrap: wrap; }
+    .month-select select { min-height: 40px; flex: 1; min-width: 0; }
+    .select-hint { width: 100%; text-align: center; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .tab { padding: 8px 6px; font-size: 12px; letter-spacing: .04em; border-radius: 9px; }
+    .search-box { margin-bottom: 10px; }
+    .search-input { font-size: 16px; padding: 10px 38px 10px 36px; }
+    .search-icon { top: 23px; }
+    .search-clear { top: 23px; width: 28px; height: 28px; }
+    .me-bar { margin-bottom: 10px; }
+    .me-info { flex-wrap: wrap; gap: 7px; padding: 10px; }
+    .me-text { flex-basis: 100%; font-size: 12px; }
+    .me-next { margin-top: 3px; }
+    .me-btn { min-height: 36px; padding: 7px 10px; }
+    .league-filter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+    .filter-btn { padding: 7px 4px; font-size: 12px; border-radius: 8px; }
+    .weekdays, .days { gap: 7px; }
+    .weekday { padding: 9px 0; font-size: 12px; letter-spacing: 1px; }
+    .day { min-height: 88px; padding: 9px 6px; border-radius: 9px; }
+    .day-num { font-size: 21px; margin-bottom: 7px; padding-bottom: 6px; }
+    .leagues { gap: 7px; }
+    .league-row { gap: 4px; }
+    .league-row-header { gap: 5px; flex-wrap: wrap; }
+    .league-badge { width: 31px; font-size: 11px; }
+    .league-time { font-size: 10px; }
+    .league-players { gap: 3px; }
+    .cal-player { min-height: 62px; padding: 5px 1px; }
+    .cal-seat { width: 17px; height: 17px; font-size: 9px; }
+    .cal-name { font-size: 10px; letter-spacing: 0; }
+    .card-count { font-size: 9px; }
+    .staff { gap: 3px 6px; font-size: 10px; }
+    .weekday-head { margin-top: 10px; font-size: 12px; letter-spacing: 1px; }
+    .info-row { margin-top: 12px; padding: 10px; }
+    .legend { gap: 8px 12px; justify-content: flex-start; font-size: 10px; }
+    .legend-dot { width: 10px; height: 10px; flex-shrink: 0; }
+    .footer { font-size: 10px; }
+    .schedule { overflow: hidden; border-radius: 10px; }
+    .day-card { padding: 12px 10px; }
+    .match { grid-template-columns: 42px minmax(0,1fr); gap: 8px; }
+    .league-tag { width: 42px; font-size: 12px; }
+    .match-header { align-items: flex-start; }
+    .match-time { font-size: 12px; letter-spacing: 0; }
+    .players { gap: 4px; }
+    .player { padding: 8px 1px 6px; }
+    .seat { width: 22px; height: 22px; font-size: 12px; margin-bottom: 6px; }
+    .player-name { font-size: 13px; letter-spacing: 1px; }
+    .player .card-count, .player .card-note { font-size: 10px; }
+    .staff { line-height: 1.6; }
+    .nav { margin-top: 10px; }
+    .nav-btn { width: 44px; height: 44px; font-size: 20px; }
+    .nav-info { font-size: 12px; }
+    .dots { gap: 8px; }
+    .dot { width: 9px; height: 9px; }
+    .empty-month { padding: 28px 12px; border-radius: 10px; }
+    .modal-overlay { padding: 12px; align-items: flex-end; }
+    .modal-overlay.active { align-items: flex-end; }
+    .modal-content { max-height: 88dvh; overflow-y: auto; padding: 24px 12px 14px; border-radius: 16px 16px 10px 10px; }
+    .me-names { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
+    .me-name-btn { min-height: 42px; font-size: 13px; }
+  }
+  @media (max-width: 360px) {
+    .poster { padding-left: 9px; padding-right: 9px; }
+    .day { padding-left: 4px; padding-right: 4px; }
+    .cal-name { font-size: 9px; }
+    .league-time { font-size: 9px; }
+    .month-select select { font-size: 12px; padding: 6px 5px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  }
+
+
+  /* iOS Safari text-rendering fallback: explicitly restore visible text colors */
+  .day-num, .cal-name, .player-name, .wd-label, .league-badge, .league-time,
+  .cal-event, .rest-label, .study-label, .player, .cal-player {
+    -webkit-text-fill-color: currentColor !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  .day-num { color: #1a1a1a !important; -webkit-text-fill-color: #1a1a1a !important; position: relative; z-index: 3; }
+  .day-num.sat { color: #1e5b8b !important; -webkit-text-fill-color: #1e5b8b !important; }
+  .day-num.sun { color: #8b2818 !important; -webkit-text-fill-color: #8b2818 !important; }
+  .cal-name, .player-name { color: #2a1810 !important; -webkit-text-fill-color: #2a1810 !important; position: relative; z-index: 3; }
+  @media (max-width: 600px) {
+    .day-num, .cal-name, .player-name { opacity: 1 !important; visibility: visible !important; }
+  }
+
+
+  /* 縦書きの名前：高さ・幅を明示（iOS Safariで縦書きの高さが0になるのを防ぐ） */
+  .cal-name, .player-name {
+    display: block; flex: none; line-height: 1.25;
+    width: 1.25em; height: calc(var(--n, 3) * (1em + var(--ls, 0px)));
+    letter-spacing: var(--ls, 0px) !important;
+  }
+  .player-name { --ls: 1px; }
+  @media (min-width: 601px) { .player-name { --ls: 2px; } }
+</style>
+</head>
+<body>
+  <div class="poster">
+    <div class="corner tl"></div><div class="corner tr"></div>
+    <div class="corner bl"></div><div class="corner br"></div>
+
+    <div class="header">
+      <div class="stamp">龍聖<br>戦</div>
+      <div class="title"><span id="title-year">2026</span>年EMA<span class="accent">龍聖戦</span></div>
+      <div class="subtitle" id="subtitle"></div>
+      <div class="month-nav">
+        <button class="month-btn" id="m-prev" aria-label="前の月">‹</button>
+        <div class="month" id="month-label"></div>
+        <button class="month-btn" id="m-next" aria-label="次の月">›</button>
+      </div>
+      <div class="month-select">
+        <select id="sel-year" aria-label="年"></select>
+        <select id="sel-month" aria-label="月"></select>
+        <span class="select-hint">● = 日程あり</span>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-view="calendar">📅 カレンダー</button>
+      <button class="tab" data-view="swipe">📜 日別</button>
+    </div>
+
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="search-input" placeholder="選手名で検索...">
+      <button class="search-clear" id="search-clear" aria-label="クリア">✕</button>
+      <div class="search-result" id="search-result"></div>
+    </div>
+
+    <div class="me-bar" id="me-bar"></div>
+
+    <div class="league-filter" id="league-filter"></div>
+
+    <div class="view active" id="view-calendar"></div>
+
+    <div class="view" id="view-swipe">
+      <div class="schedule" id="schedule">
+        <div class="slides" id="slides"></div>
+      </div>
+      <div class="nav" id="nav">
+        <button class="nav-btn" id="prev" aria-label="前へ">‹</button>
+        <div class="nav-info"><span class="current" id="current">1</span> / <span id="total">1</span></div>
+        <button class="nav-btn" id="next" aria-label="次へ">›</button>
+      </div>
+      <div class="dots" id="dots"></div>
+    </div>
+
+
+    <div class="info-row" id="legend"><div class="legend">
+      <div class="legend-item"><span class="legend-dot a1"></span>A1リーグ</div>
+      <div class="legend-item"><span class="legend-dot a2"></span>A2リーグ</div>
+      <div class="legend-item"><span class="legend-dot study"></span>勉強会</div>
+      <div class="legend-item"><span class="legend-dot rest"></span>休場</div>
+      <div class="legend-item"><span class="legend-dot rote"></span>替＝ローテ</div>
+      <div class="legend-item"><span class="legend-dot first"></span>前半のみ</div>
+      <div class="legend-item"><span class="legend-dot second"></span>後半のみ</div>
+      <div class="legend-item"><span class="legend-num">(2)</span>名前の後ろの数字＝その日の半荘数</div>
+    </div></div>
+    <div class="footer" id="footer"></div>
+  </div>
+
+  <div class="modal-overlay" id="me-modal">
+    <div class="modal-content me-picker">
+      <button class="modal-close" id="me-close" aria-label="閉じる">✕</button>
+      <div class="me-title">自分の名前を選んでください</div>
+      <div class="me-note">このスマホのブラウザにだけ記録されます</div>
+      <div id="me-list"></div>
+      <button class="me-clear" id="me-clear">登録を解除する</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close" aria-label="閉じる">✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+<script>
+/* ================================================================
+   日程データ
+   新しい月を追加するときは "YYYY-MM": { ... } のブロックを追加するだけ。
+   type: "match"（試合） / "rest"（休場） / "study"（勉強会）
+   players は 東・南・西・北 の順（seats: true のとき東南西北を表示）
+   time を省略すると時間は表示されません
+   出席者は雀記の半荘結果（出力日 2026/9/30）が正。席順・時間・ローテ・実況は各月の日程表から反映
+   seatOf: { 選手名: "東"|"南"|"西"|"北"|"替" }（席が分からない選手は省略）
+   events: 試合以外の予定（勉強会・企画・中止）
+   off: true の月はお休みの月（土日をすべて休場と表示）
+   ================================================================ */
+const SCHEDULE = {
+  "2026-01": { days: [
+    {"date": 24, "type": "match", "matches": [{"league": "A1", "hanchan": 2, "players": ["kazuki", "あずさ", "いまいたくま", "東南"], "seatOf": {"kazuki": "東", "あずさ": "南", "いまいたくま": "西", "東南": "北"}, "time": "12:00 — 15:00"}, {"league": "A2", "hanchan": 2, "players": ["にったん", "ぐーこう", "こうへー", "南滌美緖"], "seatOf": {"にったん": "東", "ぐーこう": "南", "こうへー": "西", "南滌美緖": "北"}, "time": "15:00 — 18:00"}]},
+    {"date": 25, "type": "match", "matches": [{"league": "A1", "hanchan": 2, "players": ["渋谷太一", "廣松翔人", "川島直己", "Lily"], "seatOf": {"渋谷太一": "東", "廣松翔人": "南", "川島直己": "西", "Lily": "北"}, "time": "12:00 — 15:00"}, {"league": "A2", "hanchan": 2, "players": ["しもっく", "Tomoaki", "ちくわぶ", "山下遼馬"], "seatOf": {"しもっく": "東", "Tomoaki": "南", "ちくわぶ": "西", "山下遼馬": "北"}, "time": "15:00 — 18:00"}]},
+    {"date": 31, "type": "match", "matches": [{"league": "A1", "hanchan": 2, "players": ["上地健吾", "東南", "うすい", "KAZU"], "seatOf": {"上地健吾": "東", "東南": "南", "うすい": "西", "KAZU": "北"}, "time": "12:00 — 15:00"}, {"league": "A2", "hanchan": 2, "players": ["さおり", "中里良平", "ぐーこう", "麻衣子"], "seatOf": {"さおり": "東", "中里良平": "南", "ぐーこう": "西", "麻衣子": "北"}, "time": "15:00 — 18:00"}]},
+  ] },
+  "2026-02": { days: [
+    {"date": 1, "type": "match", "matches": [{"league": "A1", "hanchan": 2, "players": ["志和友也", "カワバタ", "廣松翔人", "上地健吾"], "seatOf": {"志和友也": "東", "カワバタ": "南", "廣松翔人": "西", "上地健吾": "北"}, "time": "12:00 — 15:00"}, {"league": "A2", "hanchan": 2, "players": ["shota", "白藤", "スダ", "いわた"], "seatOf": {"shota": "東", "白藤": "南", "スダ": "西", "いわた": "北"}, "time": "15:00 — 18:00"}]},
+    {"date": 7, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["北川翔太", "蟹池", "あずさ", "倉岡研一"], "seatOf": {"北川翔太": "東", "蟹池": "南", "あずさ": "西", "倉岡研一": "北"}, "time": "11:00 — 16:00"}, {"league": "A2", "hanchan": 3, "players": ["としちゃん", "やまぐちさとる", "よしあき", "ちくわぶ"], "seatOf": {"としちゃん": "東", "やまぐちさとる": "南", "よしあき": "西", "ちくわぶ": "北"}, "time": "16:00 — 21:00"}]},
+    {"date": 8, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["Lily", "西尾龍", "KAZU", "kazuki"], "seatOf": {"Lily": "東", "西尾龍": "南", "KAZU": "西", "kazuki": "北"}, "time": "11:00 — 16:00"}, {"league": "A2", "hanchan": 3, "players": ["猫", "さおり", "白咲翔", "山下遼馬"], "seatOf": {"猫": "東", "さおり": "南", "白咲翔": "西", "山下遼馬": "北"}, "time": "16:00 — 21:00"}]},
+    {"date": 14, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["カワバタ", "志和友也", "西尾龍", "渋谷太一"], "seatOf": {"カワバタ": "東", "志和友也": "南", "西尾龍": "西", "渋谷太一": "北"}, "time": "11:00 — 16:00"}, {"league": "A2", "hanchan": 3, "players": ["白咲翔", "shota", "しもっく", "としちゃん"], "seatOf": {"白咲翔": "東", "shota": "南", "しもっく": "西", "としちゃん": "北"}, "time": "16:00 — 21:00"}]},
+    {"date": 15, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["よしあき", "麻衣子", "白藤", "こうへー"], "seatOf": {"よしあき": "東", "麻衣子": "南", "白藤": "西", "こうへー": "北"}, "time": "11:00 — 16:00"}, {"league": "A1", "hanchan": 3, "players": ["うすい", "倉岡研一", "いまいたくま", "廣松翔人"], "seatOf": {"うすい": "東", "倉岡研一": "南", "いまいたくま": "西", "廣松翔人": "北"}, "time": "16:00 — 21:00"}]},
+    {"date": 21, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["蟹池", "kazuki", "千葉楓磨", "あずさ"], "seatOf": {"蟹池": "東", "kazuki": "南", "千葉楓磨": "西", "あずさ": "北"}, "time": "11:00 — 16:00"}, {"league": "A2", "hanchan": 3, "players": ["たにかわ", "ねむ", "南滌美緖", "いわた"], "seatOf": {"たにかわ": "東", "ねむ": "南", "南滌美緖": "西", "いわた": "北"}, "time": "16:00 — 21:00"}]},
+    {"date": 22, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["志和友也", "上地健吾", "川島直己", "北川翔太"], "seatOf": {"志和友也": "東", "上地健吾": "南", "川島直己": "西", "北川翔太": "北"}, "time": "11:00 — 16:00"}, {"league": "A2", "hanchan": 3, "players": ["りこ", "やまぐちさとる", "Tomoaki", "中里良平"], "seatOf": {"りこ": "東", "やまぐちさとる": "南", "Tomoaki": "西", "中里良平": "北"}, "time": "16:00 — 21:00"}]},
+    {"date": 28, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["ねむ", "にったん", "猫", "スダ"], "seatOf": {"ねむ": "東", "にったん": "南", "猫": "西", "スダ": "北"}, "time": "11:00 — 16:00"}, {"league": "A1", "hanchan": 3, "players": ["西尾龍", "いまいたくま", "カワバタ", "千葉楓磨"], "seatOf": {"西尾龍": "東", "いまいたくま": "南", "カワバタ": "西", "千葉楓磨": "北"}, "time": "16:00 — 21:00"}]},
+  ] },
+  "2026-03": { days: [
+    {"date": 1, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["いわた", "白咲翔", "ぐーこう", "ちくわぶ"], "seatOf": {"いわた": "東", "白咲翔": "南", "ぐーこう": "西", "ちくわぶ": "北"}, "time": "10:00 — 16:00"}], "events": [{"label": "A1勉強会", "time": "16:00 — 21:00"}]},
+    {"date": 7, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["あずさ", "上地健吾", "いまいたくま", "Lily"], "seatOf": {"あずさ": "東", "上地健吾": "南", "いまいたくま": "西", "Lily": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["こうへー", "としちゃん", "よしあき", "shota"], "seatOf": {"こうへー": "東", "としちゃん": "南", "よしあき": "西", "shota": "北"}, "time": "15:30 — 21:00"}]},
+    {"date": 8, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["東南", "北川翔太", "Lily", "カワバタ"], "seatOf": {"東南": "東", "北川翔太": "南", "Lily": "西", "カワバタ": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["ちくわぶ", "麻衣子", "猫", "やまぐちさとる"], "seatOf": {"ちくわぶ": "東", "麻衣子": "南", "猫": "西", "やまぐちさとる": "北"}, "time": "15:30 — 21:00"}]},
+    {"date": 14, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["KAZU", "廣松翔人", "北川翔太", "千葉楓磨"], "seatOf": {"KAZU": "東", "廣松翔人": "南", "北川翔太": "西", "千葉楓磨": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["りこ", "いわた", "南滌美緖", "しもっく"], "seatOf": {"りこ": "東", "いわた": "南", "南滌美緖": "西", "しもっく": "北"}, "time": "15:30 — 21:00"}]},
+    {"date": 15, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["スダ", "としちゃん", "にったん", "麻衣子"], "seatOf": {"スダ": "東", "としちゃん": "南", "にったん": "西", "麻衣子": "北"}, "time": "10:00 — 16:00"}, {"league": "A2", "hanchan": 3, "players": ["ちいもも", "こうへー", "猫", "いとう"], "seatOf": {"ちいもも": "東", "こうへー": "南", "いとう": "北", "猫": "西"}, "time": "16:00 — 22:00"}]},
+    {"date": 21, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["しもっく", "津村悠介", "中里良平", "さおり"], "seatOf": {"しもっく": "東", "津村悠介": "南", "中里良平": "西", "さおり": "北"}, "time": "15:30 — 21:00"}], "events": [{"label": "A1中止", "time": ""}]},
+    {"date": 22, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["山下遼馬", "shota", "白藤", "よしあき"], "seatOf": {"山下遼馬": "東", "shota": "南", "白藤": "西", "よしあき": "北"}, "time": "10:00 — 16:00"}, {"league": "A2", "hanchan": 3, "players": ["りこ", "ねむ", "たにかわ", "ちいもも"], "seatOf": {"りこ": "東", "ねむ": "南", "たにかわ": "西", "ちいもも": "北"}, "time": "16:00 — 22:00"}]},
+    {"date": 28, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["南滌美緖", "スダ", "津村悠介", "たにかわ"], "seatOf": {"南滌美緖": "東", "スダ": "南", "津村悠介": "西", "たにかわ": "北"}, "time": "10:00 — 16:00"}, {"league": "A2", "hanchan": 3, "players": ["いとう", "ちいもも", "Tomoaki", "ぐーこう"], "seatOf": {"いとう": "東", "Tomoaki": "西", "ぐーこう": "北", "ちいもも": "南"}, "time": "16:00 — 22:00"}]},
+    {"date": 29, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["Lily", "うすい", "蟹池", "志和友也"], "seatOf": {"Lily": "東", "うすい": "南", "蟹池": "西", "志和友也": "北"}, "time": "11:00 — 15:00"}], "events": [{"label": "A1勉強会", "time": "15:30 — 21:00"}]},
+  ] },
+  "2026-04": { days: [
+    {"date": 4, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["麻衣子", "いとう", "りこ", "ねむ"], "seatOf": {"麻衣子": "東", "いとう": "南", "りこ": "西", "ねむ": "北"}, "time": "10:00 — 16:00"}, {"league": "A1", "hanchan": 3, "players": ["倉岡研一", "あずさ", "東南", "志和友也"], "seatOf": {"倉岡研一": "東", "あずさ": "南", "東南": "西", "志和友也": "北"}, "time": "11:00 — 15:00"}], "events": [{"label": "企画", "time": "15:30 — 19:30"}]},
+    {"date": 5, "type": "match", "matches": [], "events": [{"label": "A1勉強会", "time": "16:00 — 21:00"}]},
+    {"date": 11, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["川島直己", "東南", "うすい", "西尾龍"], "seatOf": {"川島直己": "東", "東南": "南", "うすい": "西", "西尾龍": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["津村悠介", "山下遼馬", "としちゃん", "いとう"], "seatOf": {"津村悠介": "東", "山下遼馬": "南", "としちゃん": "西", "いとう": "北"}, "time": "15:30 — 21:30"}]},
+    {"date": 18, "type": "match", "matches": [{"league": "A1", "hanchan": 4, "players": ["千葉楓磨", "渋谷太一", "上地健吾", "kazuki", "KAZU"], "seatOf": {"千葉楓磨": "東", "渋谷太一": "南", "上地健吾": "西", "kazuki": "北", "KAZU": "替"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["中里良平", "しもっく", "ちいもも", "にったん"], "seatOf": {"中里良平": "東", "しもっく": "南", "ちいもも": "西", "にったん": "北"}, "time": "15:30 — 21:30"}]},
+    {"date": 19, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["スダ", "猫", "やまぐちさとる", "りこ"], "seatOf": {"スダ": "東", "猫": "南", "やまぐちさとる": "西", "りこ": "北"}, "time": "10:00 — 16:00"}], "events": [{"label": "A1勉強会", "time": "16:00 — 21:00"}]},
+    {"date": 25, "type": "match", "matches": [{"league": "A1", "hanchan": 5, "players": ["いまいたくま", "蟹池", "北川翔太", "カワバタ", "渋谷太一", "倉岡研一", "うすい"], "seatOf": {"いまいたくま": "東", "北川翔太": "南", "渋谷太一": "西", "うすい": "北", "蟹池": "東", "カワバタ": "南", "倉岡研一": "西"}, "time": "11:00 — 18:00"}]},
+    {"date": 26, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["shota", "いわた", "山下遼馬", "たにかわ"], "seatOf": {"shota": "東", "いわた": "南", "山下遼馬": "西", "たにかわ": "北"}, "time": "10:00 — 16:00"}], "events": [{"label": "企画", "time": "16:00 — 21:00"}]},
+  ] },
+  "2026-05": { days: [
+    {"date": 2, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["西尾龍", "KAZU", "渋谷太一", "あずさ"], "seatOf": {"西尾龍": "東", "KAZU": "南", "渋谷太一": "西", "あずさ": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["Tomoaki", "中里良平", "にったん", "shota"], "seatOf": {"Tomoaki": "東", "中里良平": "南", "にったん": "西", "shota": "北"}, "time": "15:30 — 21:30"}]},
+    {"date": 3, "type": "match", "matches": [{"league": "A1", "hanchan": 4, "players": ["志和友也", "川島直己", "いまいたくま", "Lily"], "seatOf": {"志和友也": "東", "川島直己": "南", "いまいたくま": "西", "Lily": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["山下遼馬", "ちくわぶ", "さおり", "こうへー"], "seatOf": {"山下遼馬": "東", "ちくわぶ": "南", "さおり": "西", "こうへー": "北"}, "time": "15:30 — 21:30"}]},
+    {"date": 9, "type": "rest"},
+    {"date": 10, "type": "rest"},
+    {"date": 16, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["倉岡研一", "Lily", "kazuki", "上地健吾"], "seatOf": {"倉岡研一": "東", "Lily": "南", "kazuki": "西", "上地健吾": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["麻衣子", "やまぐちさとる", "南滌美緖", "としちゃん"], "seatOf": {"麻衣子": "東", "やまぐちさとる": "南", "南滌美緖": "西", "としちゃん": "北"}, "time": "15:30 — 21:30"}]},
+    {"date": 17, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["カワバタ", "KAZU", "うすい", "倉岡研一"], "seatOf": {"カワバタ": "東", "KAZU": "南", "うすい": "西", "倉岡研一": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["さおり", "南滌美緖", "白藤", "猫"], "seatOf": {"さおり": "東", "南滌美緖": "南", "猫": "北", "白藤": "西"}, "time": "15:30 — 21:30"}]},
+    {"date": 23, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["蟹池", "東南", "上地健吾", "千葉楓磨"], "seatOf": {"蟹池": "東", "東南": "南", "上地健吾": "西", "千葉楓磨": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["津村悠介", "ちくわぶ", "麻衣子", "ちいもも"], "seatOf": {"津村悠介": "南", "ちくわぶ": "北"}, "time": "15:30 — 21:30"}]},
+    {"date": 24, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["廣松翔人", "西尾龍", "倉岡研一", "いまいたくま"], "seatOf": {"廣松翔人": "東", "西尾龍": "南", "倉岡研一": "西", "いまいたくま": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["りこ", "としちゃん", "いとう", "白咲翔"], "seatOf": {"りこ": "東", "としちゃん": "南", "いとう": "西", "白咲翔": "北"}, "time": "15:30 — 21:30"}]},
+    {"date": 30, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["kazuki", "蟹池", "北川翔太", "倉岡研一"], "seatOf": {"kazuki": "東", "蟹池": "南", "北川翔太": "西", "倉岡研一": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["しもっく", "ねむ", "いわた", "スダ"], "seatOf": {"ねむ": "南", "いわた": "西", "スダ": "北", "しもっく": "東"}, "time": "15:30 — 21:30"}]},
+    {"date": 31, "type": "study", "league": "A2", "label": "A2リーグ勉強会", "time": "15:00 — 19:00"},
+  ] },
+  "2026-06": { days: [
+    {"date": 6, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["ねむ", "ちいもも", "shota", "こうへー"], "seatOf": {"ねむ": "東", "ちいもも": "南", "shota": "西", "こうへー": "北"}, "time": "10:00 — 16:00"}]},
+    {"date": 7, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["いまいたくま", "kazuki", "カワバタ", "川島直己"], "seatOf": {"いまいたくま": "東", "kazuki": "南", "カワバタ": "西", "川島直己": "北"}, "time": "11:00 — 15:00"}]},
+    {"date": 13, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["渋谷太一", "千葉楓磨", "志和友也", "倉岡研一"], "seatOf": {"渋谷太一": "東", "千葉楓磨": "南", "志和友也": "西", "倉岡研一": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["さおり", "津村悠介", "猫", "いわた"], "seatOf": {"さおり": "東", "津村悠介": "南", "猫": "西", "いわた": "北"}, "time": "15:30 — 19:30"}]},
+    {"date": 20, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["あずさ", "上地健吾", "東南", "カワバタ"], "seatOf": {"あずさ": "東", "上地健吾": "南", "東南": "西", "カワバタ": "北"}, "time": "11:00 — 15:00"}]},
+    {"date": 21, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["廣松翔人", "うすい", "蟹池", "北川翔太"], "seatOf": {"廣松翔人": "東", "うすい": "南", "蟹池": "西", "北川翔太": "北"}, "time": "15:00 — 19:00"}]},
+    {"date": 27, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["北川翔太", "千葉楓磨", "西尾龍", "蟹池"], "seatOf": {"北川翔太": "東", "千葉楓磨": "南", "西尾龍": "西", "蟹池": "北"}, "time": "11:00 — 15:00"}, {"league": "A2", "hanchan": 3, "players": ["こうへー", "たにかわ", "ちくわぶ", "やまぐちさとる"], "seatOf": {"こうへー": "東", "たにかわ": "南", "ちくわぶ": "西", "やまぐちさとる": "北"}, "time": "15:30 — 19:30"}]},
+    {"date": 28, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["KAZU", "志和友也", "廣松翔人", "川島直己"], "seatOf": {"KAZU": "東", "志和友也": "南", "廣松翔人": "西", "川島直己": "北"}, "time": "11:00 — 15:00"}]},
+  ] },
+  "2026-07": { days: [
+    {"date": 4, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["Tomoaki", "白咲翔", "よしあき", "ねむ"], "seatOf": {"Tomoaki": "東", "白咲翔": "南", "よしあき": "西", "ねむ": "北"}, "time": "11:00 — 15:00", "staff": {"commentary": ["うすい"], "switcher": "志和友也"}}, {"league": "A1", "hanchan": 3, "players": ["KAZU", "志和友也", "うすい", "いまいたくま"], "seatOf": {"KAZU": "東", "志和友也": "南", "うすい": "西", "いまいたくま": "北"}, "time": "15:00 — 19:00", "staff": {"commentary": ["白咲翔", "カワバタ"], "switcher": "よしあき"}}]},
+    {"date": 5, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["川島直己", "廣松翔人", "上地健吾", "渋谷太一", "カワバタ"], "seatOf": {"川島直己": "東", "廣松翔人": "南", "上地健吾": "西", "渋谷太一": "北", "カワバタ": "替"}, "time": "15:00〜", "staff": {"commentary": ["北川翔太"], "switcher": "shota"}}]},
+    {"date": 11, "type": "match", "matches": [], "events": [{"label": "A1中止", "time": ""}]},
+    {"date": 13, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["たにかわ", "やまぐちさとる", "スダ", "りこ"], "seatOf": {"たにかわ": "東", "やまぐちさとる": "南", "スダ": "西", "りこ": "北"}, "time": "15:00〜"}]},
+    {"date": 18, "type": "match", "matches": [{"league": "A2", "hanchan": 3, "players": ["白咲翔", "よしあき", "Tomoaki", "津村悠介"], "seatOf": {"白咲翔": "東", "よしあき": "南", "Tomoaki": "西", "津村悠介": "北"}, "time": "11:00 — 15:00", "staff": {"commentary": ["倉岡研一", "蟹池"], "switcher": "倉岡研一"}}, {"league": "A1", "hanchan": 3, "players": ["廣松翔人", "西尾龍", "東南", "蟹池"], "seatOf": {"廣松翔人": "東", "西尾龍": "南", "東南": "西", "蟹池": "北"}, "time": "15:00 — 19:00", "staff": {"commentary": ["倉岡研一", "津村悠介"], "switcher": "Tomoaki"}}]},
+    {"date": 19, "type": "match", "matches": [{"league": "A2", "hanchan": 4, "players": ["白藤", "山下遼馬", "中里良平", "やまぐちさとる", "shota", "こうへー"], "seatOf": {"白藤": "東", "山下遼馬": "南", "中里良平": "西", "やまぐちさとる": "北", "こうへー": "替", "shota": "替"}, "time": "15:00〜"}]},
+    {"date": 25, "type": "match", "matches": [{"league": "A2", "hanchan": 4, "players": ["南滌美緖", "いとう", "ちくわぶ", "しもっく", "麻衣子", "山下遼馬"], "seatOf": {"南滌美緖": "東", "いとう": "南", "ちくわぶ": "西", "しもっく": "北", "麻衣子": "替", "山下遼馬": "替"}, "time": "11:00〜", "staff": {"commentary": ["倉岡研一"], "switcher": null}}]},
+  ] },
+  "2026-08": { off: true, days: [] },
+  "2026-09": { days: [
+    {"date": 5, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["あずさ", "kazuki", "KAZU", "西尾龍"], "seatOf": {"あずさ": "東", "kazuki": "南", "KAZU": "西", "西尾龍": "北"}, "time": "10:00 — 14:00", "notes": {"KAZU": "前半のみ", "西尾龍": "前半のみ"}, "staff": {"commentary": ["倉岡研一", "スダ"], "switcher": "倉岡研一"}}, {"league": "A2", "hanchan": 3, "players": ["白藤", "白咲翔", "スダ", "shota"], "seatOf": {"白藤": "東", "白咲翔": "南", "スダ": "西", "shota": "北"}, "time": "15:00 — 20:00", "notes": {"白藤": "後半のみ"}, "staff": {"commentary": ["倉岡研一"], "switcher": "あずさ"}}]},
+    {"date": 12, "type": "match", "matches": [{"league": "A1", "hanchan": 4, "players": ["渋谷太一", "西尾龍", "うすい", "いまいたくま", "kazuki", "志和友也", "千葉楓磨"], "seatOf": {"渋谷太一": "東", "西尾龍": "南", "うすい": "西", "いまいたくま": "北", "志和友也": "替", "kazuki": "替", "千葉楓磨": "替"}, "time": "10:00〜", "notes": {"渋谷太一": "前半のみ", "西尾龍": "前半のみ", "千葉楓磨": "後半のみ"}}]},
+    {"date": 13, "type": "match", "matches": [{"league": "A2", "hanchan": 5, "players": ["いわた", "やまぐちさとる", "いとう", "こうへー", "たにかわ", "しもっく"], "seatOf": {"いわた": "東", "やまぐちさとる": "南", "いとう": "西", "こうへー": "北", "しもっく": "替", "たにかわ": "替"}, "time": "10:00〜", "notes": {"いわた": "前半のみ", "しもっく": "後半のみ", "たにかわ": "後半のみ"}, "staff": {"commentary": ["倉岡研一"], "switcher": "倉岡研一"}}]},
+    {"date": 26, "type": "match", "matches": [{"league": "A1", "hanchan": 3, "players": ["東南", "KAZU", "いまいたくま", "カワバタ"], "seatOf": {"東南": "東", "KAZU": "南", "いまいたくま": "西", "カワバタ": "北"}, "time": "10:00 — 14:00", "notes": {"KAZU": "前半のみ"}, "staff": {"commentary": ["倉岡研一", "麻衣子"], "switcher": "山下遼馬"}}, {"league": "A2", "hanchan": 3, "players": ["山下遼馬", "麻衣子", "よしあき", "ちくわぶ"], "seatOf": {"山下遼馬": "東", "麻衣子": "南", "よしあき": "西", "ちくわぶ": "北"}, "time": "15:00 — 20:00", "notes": {"よしあき": "後半のみ", "ちくわぶ": "後半のみ"}, "staff": {"commentary": ["カワバタ", "いまいたくま"], "switcher": "東南"}}]},
+  ] },
+  "2026-10": { days: [
+    {"date": 11, "type": "match", "matches": [{"league": "A2", "time": "10:00 — 15:00", "hanchan": 3, "seats": true, "players": ["津村悠介", "中里良平", "りこ", "山下遼馬", "やまぐちさとる"], "notes": {"津村悠介": "前半のみ"}, "counts": {"りこ": 2, "山下遼馬": 2, "やまぐちさとる": 2}, "staff": {"commentary": ["倉岡研一"], "switcher": "倉岡研一"}}]},
+    {"date": 17, "type": "match", "matches": [{"league": "A1", "time": "11:00 — 15:00", "hanchan": 3, "seats": true, "players": ["東南", "あずさ", "倉岡研一", "志和友也", "千葉楓磨"], "notes": {"東南": "前半のみ", "あずさ": "前半のみ", "千葉楓磨": "後半のみ"}, "counts": {"倉岡研一": 2, "志和友也": 2, "千葉楓磨": 2}, "staff": {"commentary": [], "switcher": "shota"}}]},
+    {"date": 18, "type": "match", "matches": [{"league": "A1", "time": "10:00 — 14:00", "hanchan": 3, "seats": true, "players": ["渋谷太一", "川島直己", "カワバタ", "上地健吾"], "notes": {"渋谷太一": "前半のみ"}, "staff": {"commentary": ["倉岡研一"], "switcher": "倉岡研一"}}]},
+    {"date": 24, "type": "match", "matches": [{"league": "A2", "time": "10:00 — 15:00", "hanchan": 3, "seats": true, "players": ["ちいもも", "スダ", "白咲翔", "南滌美緖"], "staff": {"commentary": ["倉岡研一"], "switcher": "倉岡研一"}}]},
+    {"date": 25, "type": "match", "matches": [{"league": "A2", "time": "10:00 — 15:00", "hanchan": 3, "seats": true, "players": ["白藤", "こうへー", "ちくわぶ", "shota"], "staff": {"commentary": ["倉岡研一", "KAZU"], "switcher": "倉岡研一"}}, {"league": "A1", "time": "15:00 — 19:00", "hanchan": 3, "seats": true, "players": ["上地健吾", "KAZU", "川島直己", "北川翔太"], "notes": {"上地健吾": "後半のみ"}, "staff": {"commentary": ["倉岡研一", "白藤"], "switcher": "ちくわぶ"}}]},
+  ] },
+  "2026-11": { days: [
+    {"date": 1, "type": "match", "matches": [{"league": "A1", "time": "11:00 — 15:00", "hanchan": 3, "seats": true, "players": ["川島直己", "蟹池", "北川翔太", "shota"], "staff": {"commentary": ["倉岡研一"], "switcher": "倉岡研一"}}]},
+    {"date": 21, "type": "match", "matches": [{"league": "A2", "time": "10:00 — 15:00", "hanchan": 3, "seats": true, "players": ["さおり", "Tomoaki", "たにかわ", "ちいもも"], "staff": {"commentary": ["うすい"], "switcher": "あずさ"}}, {"league": "A1", "time": "15:00 — 19:00", "hanchan": 3, "seats": true, "players": ["千葉楓磨", "あずさ", "うすい", "北川翔太"], "staff": {"commentary": ["Tomoaki"], "switcher": "たにかわ"}}]},
+    {"date": 22, "type": "match", "matches": [{"league": "A1", "time": "11:00 — 15:00", "hanchan": 3, "seats": true, "players": ["上地健吾", "川島直己", "shota", "うすい"], "staff": {"commentary": ["倉岡研一"], "switcher": "倉岡研一"}}]},
+    {"date": 23, "type": "match", "matches": [{"league": "A1", "time": "9:00 — 13:00", "hanchan": 3, "seats": true, "players": ["北川翔太", "上地健吾", "渋谷太一", "蟹池", "志和友也"], "counts": {"蟹池": 2, "志和友也": 1}, "staff": {"commentary": ["倉岡研一"], "switcher": "倉岡研一"}}]},
+    {"date": 29, "type": "match", "matches": [{"league": "A1", "time": "11:00 — 15:00", "hanchan": 3, "seats": true, "players": ["渋谷太一", "川島直己", "あずさ", "上地健吾", "西尾龍"], "counts": {"上地健吾": 1, "西尾龍": 2}, "staff": {"commentary": ["倉岡研一"], "switcher": "倉岡研一"}}, {"league": "A1", "time": "15:00 — 20:00", "hanchan": 4, "seats": true, "players": ["千葉楓磨", "倉岡研一", "東南", "川島直己", "渋谷太一"], "counts": {"川島直己": 2, "渋谷太一": 2}, "staff": {"commentary": ["西尾龍"], "switcher": "あずさ"}}]},
+  ] },
+};
+if (window.__EXTRA_SCHEDULE) Object.assign(SCHEDULE, window.__EXTRA_SCHEDULE);
+const DEFAULT_VENUE = { name: "STUDIO ゴスタ", address: "東京都目黒区自由が丘 2-2-2 パシフィック自由が丘 1F" };
+
+/* ================================================================ */
+const WD = ['日','月','火','水','木','金','土'];
+const WD_EN = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const MONTH_EN = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+const SEATS = [['東','seat-e'],['南','seat-s'],['西','seat-w'],['北','seat-n'],['替','seat-r']];
+const KD = '〇一二三四五六七八九';
+const kanjiYear = y => String(y).split('').map(d => KD[d]).join('');
+const kanjiMonth = m => m <= 10 ? (m === 10 ? '十' : KD[m]) : '十' + KD[m - 10];
+const ymKey = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
+const dow = (y, m, d) => new Date(y, m - 1, d).getDay();
+const wdClass = w => w === 6 ? 'sat' : (w === 0 ? 'sun' : '');
+const extras = (mt, p, short) => {
+  let s = '';
+  if (mt.counts && mt.counts[p]) s += `<div class="card-count">(${mt.counts[p]})</div>`;
+  const n = mt.notes && mt.notes[p];
+  if (n) s += `<div class="card-note ${n === '前半のみ' ? 'first' : 'second'}">${short ? n[0] : n.replace('のみ', '')}</div>`;
+  return s;
+};
+// 札の列数：人数ぶん1列に並べる（カレンダーは狭いので7人以上は2段に均等割り）
+const colsOf = (n, cal) => cal && n > 6 ? Math.ceil(n / 2) : Math.max(n, 4);
+const staffLine = mt => {
+  if (!mt.staff) return '';
+  const c = mt.staff.commentary && mt.staff.commentary.length ? mt.staff.commentary.map(esc).join('・') : 'なし';
+  const s = mt.staff.switcher ? esc(mt.staff.switcher) : 'なし';
+  return `<div class="staff"><span><b>実況・解説</b>${c}</span><span><b>スイッチャー</b>${s}</span></div>`;
+};
+const SEAT_CLS = { '東': 'seat-e', '南': 'seat-s', '西': 'seat-w', '北': 'seat-n', '替': 'seat-r' };
+const seatOfP = (mt, p, i) => mt.seatOf ? (mt.seatOf[p] || '') : (mt.seats ? (SEATS[i] || SEATS[4])[0] : '');
+const seatHTML = (mt, p, i, cls) => { const s = seatOfP(mt, p, i); return s ? `<div class="${cls} ${SEAT_CLS[s]}">${s}</div>` : ''; };
+const eventsHTML = (entry, cls) => (entry.events || []).map(ev =>
+  `<div class="${cls}"><b>${esc(ev.label)}</b>${ev.time ? esc(ev.time) : ''}</div>`).join('');
+// 縦書きの高さ計算用：全角=1、半角英数は少し長め
+const nameUnits = p => [...p].reduce((a, c) => a + (c.charCodeAt(0) < 128 ? 1.25 : 1), 0);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const keys = Object.keys(SCHEDULE).sort();
+const years = keys.map(k => +k.slice(0, 4));
+const MIN_YEAR = Math.min(...years), MAX_YEAR = Math.max(...years) + 1;
+let [curY, curM] = (() => {
+  if (!window.__EXTRA_SCHEDULE) return keys[keys.length - 1].split('-').map(Number);
+  const t = new Date(), tk = ymKey(t.getFullYear(), t.getMonth() + 1);
+  const k = keys.includes(tk) ? tk : (keys.find(x => x >= tk) || keys[keys.length - 1]);
+  return k.split('-').map(Number);
+})();
+let slideIndex = 0;
+let myOnly = false;      // 日別表示を「自分の出番の日だけ」に絞るか
+let monthDays = [];      // 表示中の月の全日データ（モーダル用）
+
+const $ = id => document.getElementById(id);
+
+/* ---------- 描画 ---------- */
+function onlyClass(entry) {
+  return entry.type === 'study' && entry.league ? ' only-' + entry.league.toLowerCase() : '';
+}
+
+function calCell(y, m, d, entry, label) {
+  const w = dow(y, m, d);
+  const num = `<div class="day-num ${wdClass(w)}">${label || d}</div>`;
+  if (!entry) return `<div class="day none">${num}</div>`;
+  if (entry.type === 'rest') return `<div class="day rest clickable" data-date="${d}">${num}<div class="rest-label">休 場</div></div>`;
+  if (entry.type === 'study') {
+    const short = entry.label.replace(/^A[12]リーグ/, '');
+    return `<div class="day study clickable${onlyClass(entry)}" data-date="${d}">${num}<div class="study-label">${esc(short)}<span class="time-line">${esc(entry.time)}</span></div></div>`;
+  }
+  const rows = entry.matches.map(mt => {
+    const lg = mt.league.toLowerCase();
+    const cards = mt.players.map((p, i) =>
+      `<div class="cal-player">${seatHTML(mt, p, i, 'cal-seat')}<div class="cal-name" data-name="${esc(p)}" style="--n:${nameUnits(p)}">${esc(p)}</div>${extras(mt, p, true)}</div>`).join('');
+    const info = mt.time ? esc(mt.time.split('—')[0].trim()) : `${mt.hanchan}半荘`;
+    return `<div class="league-row is-${lg}"><div class="league-row-header"><div class="league-badge ${lg}"${mt.color ? ` style="background:${mt.color}"` : ''}>${mt.league}</div><div class="league-time">${info}</div></div><div class="league-players" style="--cols:${colsOf(mt.players.length, true)}">${cards}</div>${staffLine(mt)}</div>`;
+  }).join('');
+  const ev = eventsHTML(entry, 'cal-event');
+  const cls = rows ? 'has-match' : 'study';
+  return `<div class="day ${cls} clickable" data-date="${d}">${num}<div class="leagues">${rows}${ev}</div></div>`;
+}
+
+function slideCard(y, m, entry) {
+  const d = entry.date, w = dow(y, m, d);
+  const block = `<div class="date-block"><div class="date-num">${d}</div><div class="date-day ${wdClass(w)}">${WD_EN[w]} ${WD[w]}</div></div>`;
+  if (entry.type === 'rest') return `<div class="day-card rest" data-date="${d}">${block}<div class="rest-text">休 場</div></div>`;
+  if (entry.type === 'study') return `<div class="day-card study${onlyClass(entry)}" data-date="${d}">${block}<div class="study-text"><div>${esc(entry.label)}</div><div class="study-time">${esc(entry.time)}</div></div></div>`;
+  const matches = entry.matches.map(mt => {
+    const lg = mt.league.toLowerCase();
+    const cards = mt.players.map((p, i) =>
+      `<div class="player">${seatHTML(mt, p, i, 'seat')}<div class="player-name" data-name="${esc(p)}" style="--n:${nameUnits(p)}">${esc(p)}</div>${extras(mt, p)}</div>`).join('');
+    const time = mt.time ? `<div class="match-time">${esc(mt.time)}</div>` : '';
+    return `<div class="match is-${lg}"><div class="league-tag ${lg}"${mt.color ? ` style="background:${mt.color}"` : ''}>${mt.league}<span class="small">リーグ</span></div><div class="match-info"><div class="match-header">${time}<span class="hanchan">${mt.hanchan}半荘</span></div><div class="players" style="--cols:${colsOf(mt.players.length)}">${cards}</div>${staffLine(mt)}</div></div>`;
+  }).join('');
+  return `<div class="day-card" data-date="${d}"><div class="fit">${block}<div class="matches">${matches}${eventsHTML(entry, 'slide-event')}</div></div></div>`;
+}
+
+function render() {
+  const data = SCHEDULE[ymKey(curY, curM)];
+  buildFilter();
+  $('title-year').textContent = curY;
+  $('month-label').innerHTML = `<span class="m-num">${curM}</span><span class="m-unit">月</span>`;
+  const pm = curM === 1 ? 12 : curM - 1, nm = curM === 12 ? 1 : curM + 1;
+  $('m-prev').textContent = `‹ ${pm}月`;
+  $('m-next').textContent = `${nm}月 ›`;
+  $('subtitle').textContent = `${MONTH_EN[curM - 1]}  TOURNAMENT  SCHEDULE`;
+  $('sel-year').value = curY;
+  $('sel-month').value = curM;
+  $('m-prev').disabled = curY === MIN_YEAR && curM === 1;
+  $('m-next').disabled = curY === MAX_YEAR && curM === 12;
+  const v = (data && data.venue) || DEFAULT_VENUE;
+  $('footer').innerHTML = `<strong>会場 ◆ ${esc(v.name)}</strong><br>${esc(v.address)}`;
+
+  const cal = $('view-calendar');
+  const slides = $('slides');
+  if (!data || (!data.days.length && !data.off)) {
+    const msg = `<div class="empty-month">${curY}年${curM}月の日程は<br>まだ登録されていません</div>`;
+    cal.innerHTML = msg;
+    slides.innerHTML = `<div class="day-card" style="border:none;background:none;padding:0">${msg}</div>`;
+  } else {
+    const byDate = {};
+    data.days.forEach(e => byDate[e.date] = e);
+    const last = new Date(curY, curM, 0).getDate();
+    const days = [...data.days];
+    for (let d = 1; d <= last; d++) {
+      const w = dow(curY, curM, d);
+      if ((w === 6 || w === 0) && !byDate[d]) { byDate[d] = { date: d, type: 'rest' }; days.push(byDate[d]); }
+    }
+    let cells = '';
+    let started = false;
+    let weekdayCells = '';
+    for (let d = 1; d <= last; d++) {
+      const w = dow(curY, curM, d);
+      if (w !== 6 && w !== 0) {
+        if (byDate[d]) weekdayCells += calCell(curY, curM, d, byDate[d], `${d}<span class="wd-label">(${WD[w]})</span>`);
+        continue;
+      }
+      if (!started && w === 0) cells += '<div class="day blank"></div>';
+      started = true;
+      cells += calCell(curY, curM, d, byDate[d]);
+    }
+    cal.innerHTML = `<div class="weekdays"><div class="weekday sat">土</div><div class="weekday sun">日</div></div>
+      <div class="days">${cells}</div>
+      ${weekdayCells ? `<div class="weekday-head">平日開催</div><div class="days">${weekdayCells}</div>` : ''}`;
+    days.sort((a, b) => a.date - b.date);
+    monthDays = days;
+    let list = days;
+    if (myOnly && me) {
+      const mine = days.filter(e => (e.matches || []).some(mt => mt.players.includes(me)));
+      if (mine.length) list = mine;   // この月に出番が無ければ全日を表示
+    }
+    slides.innerHTML = list.map(e => slideCard(curY, curM, e)).join('');
+  }
+
+  // スライド初期化
+  slideIndex = 0;
+  const total = slides.children.length;
+  $('total').textContent = total;
+  $('dots').innerHTML = Array.from({ length: total }, (_, i) => `<div class="dot" data-i="${i}"></div>`).join('');
+  $('nav').style.display = data ? '' : 'none';
+  $('legend').style.display = data ? '' : 'none';
+  $('dots').style.display = data ? '' : 'none';
+  updateSlide();
+
+  // カレンダーの日付クリック → 全画面
+  cal.querySelectorAll('.day.clickable').forEach(el => el.addEventListener('click', () => openModal(el.dataset.date)));
+
+  runSearch();
+  applyMe();
+  applyFilter();
+  requestAnimationFrame(equalizeAll);
+}
+
+/* ---------- 年月セレクト ---------- */
+function buildSelects() {
+  let yo = '';
+  for (let y = MIN_YEAR; y <= MAX_YEAR; y++) yo += `<option value="${y}">${y}年</option>`;
+  $('sel-year').innerHTML = yo;
+  $('sel-month').innerHTML = Array.from({ length: 12 }, (_, i) => {
+    const has = SCHEDULE[ymKey(curY, i + 1)] ? ' ●' : '';
+    return `<option value="${i + 1}">${i + 1}月${has}</option>`;
+  }).join('');
+}
+function goMonth(y, m) {
+  if (m < 1) { y--; m = 12; }
+  if (m > 12) { y++; m = 1; }
+  if (y < MIN_YEAR || y > MAX_YEAR) return;
+  curY = y; curM = m;
+  buildSelects();
+  render();
+}
+$('m-prev').addEventListener('click', () => goMonth(curY, curM - 1));
+$('m-next').addEventListener('click', () => goMonth(curY, curM + 1));
+$('sel-year').addEventListener('change', e => goMonth(+e.target.value, curM));
+$('sel-month').addEventListener('change', e => goMonth(curY, +e.target.value));
+
+/* ---------- タブ ---------- */
+document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + tab.dataset.view));
+  document.body.classList.toggle('mode-swipe', tab.dataset.view === 'swipe');
+  window.scrollTo(0, 0);
+  requestAnimationFrame(equalizeAll);
+}));
+
+/* ---------- リーグフィルター（月ごとに動的生成） ---------- */
+let curFilter = 'all';
+function buildFilter() {
+  const key = ymKey(curY, curM), data = SCHEDULE[key];
+  let codes = ['A1', 'A2'];                       // 従来の月はA1/A2
+  if (window.__EXTRA_SCHEDULE && window.__EXTRA_SCHEDULE[key]) {
+    codes = [];
+    (data.days || []).forEach(e => (e.matches || []).forEach(mt => { if (!codes.includes(mt.league)) codes.push(mt.league); }));
+  }
+  if (curFilter !== 'all' && !codes.some(c => c.toLowerCase() === curFilter)) curFilter = 'all';
+  $('league-filter').innerHTML = [['all', '全て'], ...codes.map(c => [c.toLowerCase(), c])]
+    .map(([k, t]) => `<button class="filter-btn${k === curFilter ? ' active' : ''}" data-league="${esc(k)}">${esc(t)}</button>`).join('');
+}
+function applyFilter() {
+  [...document.body.classList].filter(c => c.startsWith('filter-')).forEach(c => document.body.classList.remove(c));
+  if (curFilter !== 'all') document.body.classList.add('filter-' + curFilter);
+  document.querySelectorAll('.poster .league-row, .poster .match').forEach(el => {
+    el.style.display = (curFilter === 'all' || el.classList.contains('is-' + curFilter)) ? '' : 'none';
+  });
+}
+$('league-filter').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn'); if (!btn) return;
+  curFilter = btn.dataset.league; buildFilter(); applyFilter();
+});
+
+/* ---------- スライド ---------- */
+function updateSlide() {
+  const slides = $('slides');
+  const total = slides.children.length;
+  slides.style.transform = `translateX(-${slideIndex * 100}%)`;
+  let cur = total ? slideIndex + 1 : 0, all = total;
+  if (myOnly && me && total) {   // 出場日のみ表示中は、その年の通算の順番で数える
+    const d = +slides.children[slideIndex].dataset.date;
+    const apps = myAppearances().filter(a => a.y === curY);
+    const pos = apps.findIndex(a => a.m === curM && a.d === d);
+    if (pos >= 0) { cur = pos + 1; all = apps.length; }
+  }
+  $('current').textContent = cur;
+  $('total').textContent = all;
+  $('dots').querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === slideIndex));
+  $('prev').disabled = slideIndex === 0 && !adjacentMine(-1);
+  $('next').disabled = slideIndex >= total - 1 && !adjacentMine(1);
+}
+/* 出場日のみ表示中：今見ている日の前/後にある自分の出番（月をまたいでよい） */
+function adjacentMine(dir) {
+  if (!myOnly || !me) return null;
+  const cur = $('slides').children[slideIndex];
+  if (!cur || !cur.dataset.date) return null;
+  const key = a => a.y * 10000 + a.m * 100 + a.d;
+  const ck = curY * 10000 + curM * 100 + (+cur.dataset.date);
+  const apps = myAppearances();
+  return dir > 0 ? (apps.find(a => key(a) > ck) || null)
+                 : ([...apps].reverse().find(a => key(a) < ck) || null);
+}
+function stepSlide(dir) {
+  const total = $('slides').children.length;
+  const t = slideIndex + dir;
+  if (t >= 0 && t < total) { goSlide(t); return; }
+  const a = adjacentMine(dir);     // 月の端まで来たら、隣の月の出番へ自動で移る
+  if (!a) return;
+  curY = a.y; curM = a.m;
+  buildSelects();
+  render();
+  requestAnimationFrame(() => {
+    const idx = [...$('slides').children].findIndex(c => +c.dataset.date === a.d);
+    if (idx >= 0) goSlide(idx);
+  });
+}
+function goSlide(i) {
+  const total = $('slides').children.length;
+  slideIndex = Math.max(0, Math.min(total - 1, i));
+  updateSlide();
+}
+$('prev').addEventListener('click', () => stepSlide(-1));
+$('next').addEventListener('click', () => stepSlide(1));
+$('dots').addEventListener('click', e => { if (e.target.dataset.i) goSlide(+e.target.dataset.i); });
+let sx = 0, cx = 0, drag = false;
+$('schedule').addEventListener('touchstart', e => { sx = cx = e.touches[0].clientX; drag = true; });
+$('schedule').addEventListener('touchmove', e => { if (drag) cx = e.touches[0].clientX; });
+$('schedule').addEventListener('touchend', () => {
+  if (drag && Math.abs(cx - sx) > 50) stepSlide(cx < sx ? 1 : -1);
+  drag = false;
+});
+document.addEventListener('keydown', e => {
+  if ($('modal').classList.contains('active')) { if (e.key === 'Escape') closeModal(); return; }
+  if (!$('view-swipe').classList.contains('active') || e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowLeft') stepSlide(-1);
+  if (e.key === 'ArrowRight') stepSlide(1);
+});
+
+/* ---------- 全画面モーダル ---------- */
+function openModal(date) {
+  let card = $('slides').querySelector(`.day-card[data-date="${date}"]`);
+  if (!card) {   // 出番のみ表示中でスライドに無い日は、データから作る
+    const e = monthDays.find(x => String(x.date) === String(date));
+    if (!e) return;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = slideCard(curY, curM, e);
+    card = tmp.firstElementChild;
+  }
+  const body = $('modal-body');
+  body.innerHTML = '';
+  const clone = card.cloneNode(true);
+  clone.classList.remove('match-found');
+  clone.style.height = '';
+  clone.querySelectorAll('.fit').forEach(f => f.style.transform = '');
+  body.appendChild(clone);
+  $('modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => equalize('#modal-body .player'));
+}
+function closeModal() {
+  $('modal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+$('modal-close').addEventListener('click', closeModal);
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) closeModal(); });
+
+/* ---------- 選手名検索 ---------- */
+function runSearch() {
+  const q = $('search-input').value.trim().toLowerCase();
+  const names = document.querySelectorAll('.poster [data-name]');
+  names.forEach(n => n.classList.remove('highlight'));
+  document.querySelectorAll('.match-found').forEach(e => e.classList.remove('match-found'));
+  $('search-clear').classList.toggle('visible', !!q);
+  const res = $('search-result');
+  if (!q) {
+    document.body.classList.remove('searching');
+    res.classList.remove('visible');
+    return;
+  }
+  document.body.classList.add('searching');
+
+  // 表示中の月のデータから、ヒットした選手ごとの出席日を集計
+  const data = SCHEDULE[ymKey(curY, curM)];
+  const hits = {};
+  if (data) data.days.forEach(e => (e.matches || []).forEach(mt => mt.players.forEach(p => {
+    if (p.toLowerCase().includes(q)) (hits[p] = hits[p] || new Set()).add(e.date);
+  })));
+
+  const matchedDates = new Set();
+  Object.values(hits).forEach(s => s.forEach(d => matchedDates.add(String(d))));
+  names.forEach(n => { if (n.dataset.name.toLowerCase().includes(q)) n.classList.add('highlight'); });
+  document.querySelectorAll('.poster .day[data-date], .poster .day-card[data-date]').forEach(el => {
+    if (matchedDates.has(el.dataset.date)) el.classList.add('match-found');
+  });
+
+  // 同じ年の通算出席日
+  const yearHits = {};
+  Object.keys(SCHEDULE).filter(k => +k.slice(0, 4) === curY).forEach(k => {
+    SCHEDULE[k].days.forEach(e => (e.matches || []).forEach(mt => mt.players.forEach(p => {
+      if (p.toLowerCase().includes(q)) (yearHits[p] = yearHits[p] || new Set()).add(k + '-' + e.date);
+    })));
+  });
+  const lines = Object.keys(yearHits).sort((a, b) => (hits[b] ? 1 : 0) - (hits[a] ? 1 : 0)).map(p => {
+    const total = `<span class="year-total">${curY}年通算 ${yearHits[p].size}日</span>`;
+    if (!hits[p]) return `<strong>${esc(p)}</strong>：${curM}月の出席なし　${total}`;
+    const dates = [...hits[p]].sort((a, b) => a - b)
+      .map(d => `${curM}月${d}日(${WD[dow(curY, curM, d)]})`).join('、');
+    return `<strong>${esc(p)}</strong>：出席日${hits[p].size}日（${dates}）　${total}`;
+  });
+  res.innerHTML = lines.length ? lines.join('<br>') : `<strong>"${esc(q)}"</strong>：該当する選手はいません`;
+  res.classList.add('visible');
+}
+$('search-input').addEventListener('input', runSearch);
+$('search-clear').addEventListener('click', () => { $('search-input').value = ''; runSearch(); $('search-input').focus(); });
+
+/* ---------- 木札カードの高さを同じ日の中で一番長い名前に揃える ---------- */
+function equalize(selector, root = document) {
+  const cards = root.querySelectorAll(selector);
+  cards.forEach(c => c.style.height = 'auto');
+  let max = 0;
+  cards.forEach(c => { max = Math.max(max, c.offsetHeight); });
+  if (max > 0) cards.forEach(c => c.style.height = max + 'px');
+}
+function equalizeAll() {
+  document.querySelectorAll('#view-calendar .day').forEach(d => equalize('.cal-player', d));
+  document.querySelectorAll('#slides .day-card').forEach(d => equalize('.player', d));
+  fitSlides();
+}
+
+/* ---------- 日別：スマホ1画面に収まるよう各日のカードを縮小 ---------- */
+function fitSlides() {
+  const swipe = document.body.classList.contains('mode-swipe');
+  document.querySelectorAll('#slides .fit').forEach(f => {
+    f.style.transform = '';
+    if (!swipe) return;
+    const card = f.parentElement;
+    const cs = getComputedStyle(card);
+    const avail = card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const need = f.scrollHeight;
+    if (avail > 0 && need > avail) f.style.transform = `scale(${(avail / need).toFixed(3)})`;
+  });
+}
+window.addEventListener('resize', () => requestAnimationFrame(equalizeAll));
+new ResizeObserver(() => { if (document.body.classList.contains('mode-swipe')) fitSlides(); }).observe($('schedule'));
+window.addEventListener('load', equalizeAll);
+if (document.fonts) document.fonts.ready.then(equalizeAll);
+
+/* ---------- 日別の札をタッチすると揺れる ---------- */
+function swingCard(e) {
+  const card = e.target.closest('.player');
+  if (!card) return;
+  card.classList.remove('swing');
+  void card.offsetWidth;            // 連続タップでも最初から揺れ直す
+  card.classList.add('swing');
+}
+$('slides').addEventListener('click', swingCard);
+$('modal-body').addEventListener('click', swingCard);
+document.addEventListener('animationend', e => {
+  if (e.animationName === 'fuda-swing') e.target.classList.remove('swing');
+});
+
+/* ---------- 自分を登録（このスマホのブラウザにだけ保存） ---------- */
+const ME_KEY = 'ema-ryuseisen-me';
+let me = '';
+try { me = localStorage.getItem(ME_KEY) || ''; } catch (e) {}
+function saveMe(name) {
+  me = name;
+  if (!name) myOnly = false;
+  try { name ? localStorage.setItem(ME_KEY, name) : localStorage.removeItem(ME_KEY); } catch (e) {}
+  closeMePicker();
+  render();   // 名前を変えたら日別の絞り込みも作り直す
+}
+function allPlayers() {
+  const lg = {};
+  Object.values(SCHEDULE).forEach(mo => mo.days.forEach(e => (e.matches || []).forEach(mt =>
+    mt.players.forEach(p => { lg[p] = lg[p] || mt.league; }))));
+  return lg;
+}
+function myAppearances() {
+  const out = [];
+  if (!me) return out;
+  Object.keys(SCHEDULE).sort().forEach(k => {
+    const [y, m] = k.split('-').map(Number);
+    [...SCHEDULE[k].days].sort((a, b) => a.date - b.date).forEach(e => (e.matches || []).forEach(mt => {
+      const i = mt.players.indexOf(me);
+      if (i >= 0) out.push({ y, m, d: e.date, mt, seat: seatOfP(mt, me, i) });
+    }));
+  });
+  return out;
+}
+function describe(a) {
+  const w = WD[dow(a.y, a.m, a.d)];
+  const t = a.mt.time ? a.mt.time.split('—')[0].replace('〜', '').trim() + '〜' : '';
+  const seat = a.seat ? (a.seat === '替' ? '・ローテ' : `・${a.seat}家`) : '';
+  return `${a.m}/${a.d}(${w}) ${a.mt.league} ${t}${seat}`;
+}
+let meTarget = null;
+function applyMe() {
+  document.querySelectorAll('.is-me').forEach(e => e.classList.remove('is-me'));
+  document.querySelectorAll('.me-day').forEach(e => e.classList.remove('me-day'));
+  const bar = $('me-bar');
+  if (!me) {
+    bar.innerHTML = '<button class="me-register" id="me-open">👤 自分の名前を登録すると、出番がすぐ分かります</button>';
+    $('me-open').onclick = openMePicker;
+    requestAnimationFrame(fitSlides);
+    return;
+  }
+  document.querySelectorAll('.poster [data-name]').forEach(n => {
+    if (n.dataset.name !== me) return;
+    n.parentElement.classList.add('is-me');
+    const day = n.closest('.day');
+    if (day) day.classList.add('me-day');
+  });
+  const apps = myAppearances();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const inMonth = apps.filter(a => a.y === curY && a.m === curM);
+  const next = apps.find(a => new Date(a.y, a.m - 1, a.d) >= today);
+  const monthCount = inMonth.length;
+  // 表示中の月に出番があれば、その月の中で案内する（月が勝手に切り替わらないように）
+  const nextInMonth = inMonth.find(a => new Date(a.y, a.m - 1, a.d) >= today);
+  // 「次の出番」は表示中の月に関係なく、常に今日以降で一番近い出番
+  let line;
+  if (next) line = `次の出番 <b>${describe(next)}</b>`;
+  else if (apps.length) line = `予定されている出番はありません（前回 ${describe(apps[apps.length - 1])}）`;
+  else line = '登録されている出番はありません';
+  // 「見る」の移動先は、表示中の月に出番があればその月の中（月が勝手に切り替わらないように）
+  if (inMonth.length) meTarget = nextInMonth || inMonth[0];
+  else meTarget = next || (apps.length ? apps[apps.length - 1] : null);
+
+  bar.innerHTML = `<div class="me-info">
+      <div class="me-text"><span class="me-name">★ ${esc(me)}</span>　${curM}月の出番 ${monthCount}日<span class="me-next">${line}</span></div>
+      ${meTarget ? '<button class="me-btn" id="me-go">見る</button>' : ''}
+      <button class="me-btn sub" id="me-filter">${myOnly ? '全日表示' : '出番のみ'}</button>
+      <button class="me-btn sub" id="me-open">変更</button>
+    </div>`;
+  $('me-filter').onclick = () => { myOnly = !myOnly; render(); };
+  $('me-open').onclick = openMePicker;
+  if (meTarget) $('me-go').onclick = () => showMyDay(meTarget);
+  requestAnimationFrame(fitSlides);
+}
+function showMyDay(a) {
+  myOnly = true;                       // 見る → 日別は出番の日だけに絞る
+  curY = a.y; curM = a.m;
+  buildSelects();
+  render();
+  const swipeTab = document.querySelector('.tab[data-view="swipe"]');
+  if (!swipeTab.classList.contains('active')) swipeTab.click();
+  requestAnimationFrame(() => {
+    const idx = [...$('slides').children].findIndex(c => +c.dataset.date === a.d);
+    if (idx >= 0) goSlide(idx);
+  });
+}
+function openMePicker() {
+  const lg = allPlayers();
+  const group = L => Object.keys(lg).filter(p => lg[p] === L).sort((a, b) => a.localeCompare(b, 'ja'))
+    .map(p => `<button class="me-name-btn${p === me ? ' current' : ''}" data-name-pick="${esc(p)}">${esc(p)}</button>`).join('');
+  $('me-list').innerHTML = [...new Set(Object.values(lg))].map(L =>
+    `<div class="me-group"><div class="me-group-title ${L.toLowerCase()}">${L}リーグ</div><div class="me-names">${group(L)}</div></div>`).join('');
+  $('me-clear').style.display = me ? '' : 'none';
+  $('me-modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeMePicker() {
+  $('me-modal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+$('me-list').addEventListener('click', e => { const b = e.target.closest('[data-name-pick]'); if (b) saveMe(b.dataset.namePick); });
+$('me-clear').addEventListener('click', () => saveMe(''));
+$('me-close').addEventListener('click', closeMePicker);
+$('me-modal').addEventListener('click', e => { if (e.target === $('me-modal')) closeMePicker(); });
+
+buildSelects();
+render();
+<\/script>
+</body>
+</html>
+</script>
+<script type="text/plain" id="src-gen"><!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>対局日程自動生成ツール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>
+<style>
+  :root {
+    --felt: #173C2E; --felt-deep: #0C231A; --panel: #F4EEDD; --ink: #1E2A20; --ink-soft: #4A5A4C;
+    --red: #A5423B; --red-deep: #7E312B; --bamboo: #4F7358; --gold: #B8923F;
+    --border: rgba(30, 42, 32, 0.16); --shadow: rgba(12, 35, 26, 0.35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --panel: #E9E1CB; --felt: #0E2B21; --felt-deep: #081B14; }
+  }
+  :root[data-theme="dark"] { --panel: #E9E1CB; --felt: #0E2B21; --felt-deep: #081B14; }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; min-height: 100%;
+    background: radial-gradient(1200px 700px at 15% -10%, rgba(255,255,255,0.05), transparent 60%),
+      linear-gradient(180deg, var(--felt) 0%, var(--felt-deep) 100%);
+    color: var(--panel); font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 40px 22px 90px; }
+  header.top { display: flex; align-items: center; gap: 14px; margin-bottom: 30px; border-bottom: 1px solid rgba(244,238,221,0.18); padding-bottom: 22px; }
+  .brand-tile { font-size: 32px; line-height: 1; }
+  h1 { font-family: 'Shippori Mincho', serif; font-weight: 700; font-size: clamp(20px, 3.2vw, 27px); margin: 0; color: #FBF7E9; }
+  .lede { max-width: 62ch; margin: 6px 0 0; font-size: 13.5px; line-height: 1.75; color: rgba(244,238,221,0.72); }
+
+  .panel { background: var(--panel); color: var(--ink); border-radius: 14px; padding: 22px 24px; box-shadow: 0 16px 36px var(--shadow); margin-bottom: 18px; }
+  .panel h2 { font-family: 'Shippori Mincho', serif; font-size: 16px; margin: 0 0 4px; }
+  .panel .hint { font-size: 12px; color: var(--ink-soft); margin: 0 0 16px; line-height: 1.65; }
+
+  label { display: block; font-size: 12.5px; font-weight: 500; margin: 14px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  label .sub { display: block; font-weight: 400; color: var(--ink-soft); font-size: 11px; margin-top: 2px; }
+
+  textarea, input[type="number"], input[type="date"], input[type="text"], select {
+    width: 100%; font-family: inherit; font-size: 13.5px; padding: 9px 11px; border-radius: 8px;
+    border: 1px solid var(--border); background: #FFFDF6; color: var(--ink);
+  }
+  textarea { resize: vertical; }
+  textarea.excl { height: 76px; }
+  textarea.players { height: 160px; font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 12.5px; }
+
+  .player-list-head {
+    display: grid; grid-template-columns: 1fr 1fr 32px; gap: 8px;
+    font-size: 11px; color: var(--ink-soft); padding: 0 2px 6px; font-weight: 500;
+  }
+  #player-list { display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; padding-right: 2px; }
+  .player-row { display: grid; grid-template-columns: 1fr 1fr 32px; gap: 8px; align-items: center; }
+  .player-row input, .player-row select { padding: 7px 9px; font-size: 13px; }
+  .player-row select { background: #FFFDF6; }
+  .player-row .remove-player-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--red-deep);
+    border-radius: 6px; cursor: pointer; height: 32px; font-size: 13px; line-height: 1;
+  }
+  .player-row .remove-player-btn:hover { background: rgba(165,66,59,0.08); }
+  .player-row select.unassigned { border-color: var(--red); color: var(--red-deep); }
+
+  details.bulk-import { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  details.bulk-import summary { cursor: pointer; font-size: 12.5px; color: var(--bamboo); font-weight: 500; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .checkline { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12.5px; }
+  .checkline input { width: auto; }
+
+  .entry-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 16px; }
+  @media (max-width: 560px) { .entry-row { grid-template-columns: 1fr; } }
+  .add-entry-btn {
+    background: var(--bamboo); color: #FBF7E9; border: none; padding: 10px 20px; border-radius: 8px;
+    font-family: 'Shippori Mincho', serif; font-weight: 700; font-size: 13.5px; cursor: pointer; white-space: nowrap;
+  }
+  .add-entry-btn:hover { background: #3F5F49; }
+
+  details.registered-players { margin-bottom: 4px; border-top: 1px solid var(--border); padding-top: 12px; }
+  details.registered-players summary { cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink); padding: 2px 0 10px; }
+  details.registered-players summary:hover { color: var(--red-deep); }
+
+  .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 12px; }
+  .filter-tab-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--ink-soft);
+    font-family: inherit; font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  }
+  .filter-tab-btn:hover { background: rgba(30,42,32,0.06); }
+  .filter-tab-btn.active { background: var(--ink); color: #FBF7E9; border-color: var(--ink); }
+
+  .excl-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 7px 4px; border-bottom: 1px dashed var(--border); font-size: 13px;
+  }
+  .excl-row:last-child { border-bottom: none; }
+  .excl-row .remove-player-btn { flex-shrink: 0; margin-left: 10px; }
+
+  .table-scroll { overflow-x: auto; margin: 6px 0 10px; }
+  table.stat-table { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+  table.stat-table th, table.stat-table td { padding: 5px 9px; border-bottom: 1px solid var(--border); text-align: center; }
+  table.stat-table th:first-child, table.stat-table td:first-child { text-align: left; position: sticky; left: 0; background: var(--panel); }
+  table.stat-table thead th { color: var(--ink-soft); font-weight: 500; border-bottom: 1px solid var(--ink-soft); }
+  table.matrix-table td.diag { color: var(--ink-soft); }
+  table.matrix-table th { font-weight: 500; }
+
+  #league-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .league-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; background: rgba(255,253,246,0.5); }
+  .league-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .league-color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .league-name-input { flex: 1; font-family: 'Shippori Mincho', serif; font-weight: 700; font-size: 14.5px; border: none; background: transparent; padding: 4px 2px; border-bottom: 1px solid transparent; }
+  .league-name-input:focus { outline: none; border-bottom: 1px solid var(--bamboo); }
+  .league-count-badge { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; }
+  .remove-league-btn { background: transparent; border: 1px solid var(--border); color: var(--red-deep); font-size: 11px; padding: 5px 10px; border-radius: 999px; cursor: pointer; flex-shrink: 0; }
+  .remove-league-btn:hover { background: rgba(165,66,59,0.08); }
+  .add-league-btn { align-self: flex-start; background: transparent; border: 1px dashed var(--ink-soft); color: var(--red-deep); font-family: inherit; font-weight: 500; font-size: 13px; padding: 9px 16px; border-radius: 8px; cursor: pointer; margin-top: 14px; }
+  .add-league-btn:hover { background: rgba(165,66,59,0.07); }
+
+  .generate-btn { width: 100%; margin-top: 16px; background: var(--red); color: #FBF7E9; border: none; padding: 14px 16px; border-radius: 9px; font-family: 'Shippori Mincho', serif; font-weight: 700; font-size: 15.5px; letter-spacing: 0.03em; cursor: pointer; }
+  .generate-btn:hover { background: var(--red-deep); }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .stat { background: rgba(30,42,32,0.06); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--ink-soft); }
+  .stat b { color: var(--ink); font-size: 13.5px; }
+
+  .warning { background: rgba(165,66,59,0.1); border: 1px solid rgba(165,66,59,0.3); color: var(--red-deep); font-size: 12.5px; padding: 11px 14px; border-radius: 8px; margin: 14px 0; line-height: 1.75; }
+  .ok { background: rgba(79,115,88,0.12); border: 1px solid rgba(79,115,88,0.35); color: #2E4A37; font-size: 12.5px; padding: 11px 14px; border-radius: 8px; margin: 14px 0; line-height: 1.75; }
+
+  .results-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .copy-btn { background: transparent; border: 1px solid var(--border); color: var(--ink); font-family: inherit; font-size: 12px; padding: 7px 13px; border-radius: 999px; cursor: pointer; }
+  .copy-btn:hover { background: rgba(30,42,32,0.06); }
+  .copy-btn.reflect { background: var(--red); color: #FBF7E9; border-color: var(--red); }
+  .copy-btn.excel { background: var(--bamboo); color: #FBF7E9; border-color: var(--bamboo); }
+  .copy-btn.excel:hover { background: #3F5F49; }
+
+  .empty { color: var(--ink-soft); font-size: 13px; line-height: 1.8; padding: 20px 0; }
+
+  details.month { border-top: 1px solid var(--border); padding: 10px 0; }
+  details.month summary { cursor: pointer; font-family: 'Shippori Mincho', serif; font-size: 14px; font-weight: 700; padding: 6px 0; list-style: none; }
+  details.month summary::-webkit-details-marker { display: none; }
+  details.month summary::before { content: '▸ '; color: var(--red); }
+  details.month[open] summary::before { content: '▾ '; }
+
+  table.match-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 10px; }
+  table.match-table td { padding: 7px 6px; border-bottom: 1px dashed var(--border); vertical-align: top; }
+  td.date-cell { white-space: nowrap; font-weight: 500; width: 116px; }
+  td.league-cell { width: 92px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: #fff; }
+  td.session-cell .slot-label { font-size: 10.5px; color: var(--ink-soft); margin-right: 6px; }
+  td.session-cell div { margin-bottom: 3px; }
+  .seat { color: var(--red-deep); font-size: 11px; }
+
+  footer.note { margin-top: 26px; font-size: 11.5px; color: rgba(244,238,221,0.5); line-height: 1.8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand-tile">🀄</div>
+    <div>
+      <h1>対局日程自動生成ツール（個人戦・半荘管理）</h1>
+      <p class="lede">土日のみ・祝日と大型連休を除外し、リーグごとの目標半荘数を満たすように卓の組み合わせ・座席（東南西北）・日付を自動で割り振ります。同卓回数の均等化、連日出場の回避も考慮します。</p>
+    </div>
+  </header>
+
+  <section class="panel">
+    <h2>シーズン設定</h2>
+    <p class="hint">対象期間の土日をすべて候補にし、日本の祝日（自動計算）と下の除外期間を差し引きます。期間が年をまたいでも計算できます。</p>
+    <div class="grid2">
+      <div><label>開始日</label><input type="date" id="season-start"></div>
+      <div><label>終了日</label><input type="date" id="season-end"></div>
+    </div>
+    <label>大型連休など追加の除外期間
+      <span class="sub">年は上の開始日から自動判定します。月日を4桁の数字で入力（例：0429）</span>
+    </label>
+    <div class="entry-row">
+      <input type="text" id="excl-start-input" inputmode="numeric" maxlength="4" placeholder="開始日 例:0429">
+      <input type="text" id="excl-end-input" inputmode="numeric" maxlength="4" placeholder="終了日 例:0505">
+      <button class="add-entry-btn" id="add-excl-btn">追加</button>
+    </div>
+    <div id="excl-error" class="hint" style="color:var(--red-deep); display:none;"></div>
+
+    <details class="registered-players" id="excl-list-details">
+      <summary>登録済みの除外期間（<span id="excl-count">0</span>件）</summary>
+      <div id="excl-list"></div>
+    </details>
+    <div class="checkline">
+      <input type="checkbox" id="use-holidays" checked>
+      <label for="use-holidays" style="margin:0;">日本の祝日を自動で除外する（土日と重なる祝日・振替休日・国民の休日を含む）</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>対局ルール（共通）</h2>
+    <label>1セッションの半荘数
+      <span class="sub">4名で打つ半荘数（前半/後半それぞれ）</span>
+    </label>
+    <input type="number" id="hanchan-per-session" value="3" min="1" style="max-width:160px;">
+    <p class="hint" style="margin-top:14px;">1日1卓・前半1セッション（4名）＋後半1セッション（別の4名）で固定しています。同じ選手が2日連続で対局しないように、また同卓の組み合わせと座席（東南西北）ができるだけ均等になるように自動調整します。目標半荘数はリーグごとに下で設定します。</p>
+  </section>
+
+  <section class="panel">
+    <h2>リーグ設定</h2>
+    <p class="hint">リーグの追加・削除、名前と目標半荘数の変更ができます。人数は下の選手登録から自動集計されます。</p>
+    <div id="league-list"></div>
+    <button class="add-league-btn" id="add-league-btn">＋ リーグを追加</button>
+  </section>
+
+  <section class="panel">
+    <h2>選手登録</h2>
+    <p class="hint">選手名を入力してリーグを選び「追加」を押すと、下の一覧（折りたたみ）に収納されます。同じ枠に続けて次の選手を入力できます。一覧を開けば、名前の修正やリーグの付け替え（プルダウンを選び直すだけ）もできます。</p>
+    <div class="entry-row">
+      <input type="text" id="new-player-name" placeholder="選手名">
+      <select id="new-player-league"></select>
+      <button class="add-entry-btn" id="add-player-btn">追加</button>
+    </div>
+
+    <details class="registered-players" id="registered-players-details">
+      <summary>登録済みの選手（<span id="player-count">0</span>名）</summary>
+      <div id="player-filter-tabs" class="filter-tabs"></div>
+      <div class="player-list-head">
+        <span>選手名</span><span>所属リーグ</span><span></span>
+      </div>
+      <div id="player-list"></div>
+    </details>
+
+    <details class="bulk-import">
+      <summary>一括貼り付けで登録する</summary>
+      <p class="hint" style="margin-top:10px;">1行に「選手名,所属リーグ名」（タブ区切りも可）。Excel/スプレッドシートからの貼り付けにも対応。既存の登録に追加されます。</p>
+      <textarea class="players" id="bulk-raw" placeholder="山田太郎,Aリーグ&#10;鈴木花子,Aリーグ&#10;佐藤次郎,B1リーグ&#10;..."></textarea>
+      <button class="copy-btn" id="bulk-import-btn" style="margin-top:8px;">取り込む</button>
+      <div id="bulk-import-result" class="hint" style="margin-top:8px;"></div>
+    </details>
+
+    <div class="stats" id="registry-summary"></div>
+
+  </section>
+
+  <div class="panel" style="background:transparent;box-shadow:none;padding:0;margin-bottom:18px;">
+    <button class="generate-btn" id="generate-btn">日程を自動生成する</button>
+    <div class="stats" id="feasibility-stats"></div>
+  </div>
+
+  <section class="panel">
+    <div class="results-head">
+      <h2>生成結果</h2>
+      <div class="btn-row">
+        <button class="copy-btn" id="copy-btn" style="display:none;">表をコピー</button>
+        <button class="copy-btn reflect" id="reflect-btn" style="display:none;">日程表に反映</button>
+        <button class="copy-btn excel" id="excel-btn" style="display:none;">Excelに出力</button>
+      </div>
+    </div>
+    <div id="output"><div class="empty">選手登録とリーグ設定を入力して「日程を自動生成する」を押してください。</div></div>
+  </section>
+
+  <footer class="note">祝日計算は春分・秋分を近似式（1980〜2099年で有効）で求めています。振替休日・国民の休日も反映していますが、最終的な祝日は公式発表と照合してください。入力内容はこの端末にのみ保存されます。</footer>
+</div>
+
+<script>
+(function () {
+  const GROUP_SIZE = 4;
+  const SEATS = ['東家', '南家', '西家', '北家'];
+  const PALETTE = ['#A5423B', '#4F7358', '#B8923F', '#3B5878', '#7A4B6B', '#3E7A72', '#8C5A2B'];
+
+  // ---------- date helpers ----------
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function iso(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function parseISO(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+
+  // ---------- Japanese holiday calculation ----------
+  function nthMonday(year, month, n) {
+    let d = new Date(year, month-1, 1);
+    let dow = d.getDay();
+    let firstMonday = 1 + ((8 - dow) % 7);
+    return new Date(year, month-1, firstMonday + (n-1)*7);
+  }
+  function vernalEquinoxDay(year) { return Math.floor(20.8431 + 0.242194*(year-1980) - Math.floor((year-1980)/4)); }
+  function autumnalEquinoxDay(year) { return Math.floor(23.2488 + 0.242194*(year-1980) - Math.floor((year-1980)/4)); }
+  function baseHolidaysForYear(year) {
+    const list = [];
+    const push = (m,d,name) => list.push({date: new Date(year,m-1,d), name});
+    push(1,1,'元日'); push(2,11,'建国記念の日'); push(2,23,'天皇誕生日');
+    list.push({date: nthMonday(year,1,2), name:'成人の日'});
+    push(4,29,'昭和の日'); push(5,3,'憲法記念日'); push(5,4,'みどりの日'); push(5,5,'こどもの日');
+    list.push({date: nthMonday(year,7,3), name:'海の日'});
+    push(8,11,'山の日');
+    list.push({date: nthMonday(year,9,3), name:'敬老の日'});
+    list.push({date: new Date(year,8,autumnalEquinoxDay(year)), name:'秋分の日'});
+    list.push({date: nthMonday(year,10,2), name:'スポーツの日'});
+    push(11,3,'文化の日'); push(11,23,'勤労感謝の日');
+    list.push({date: new Date(year,2,vernalEquinoxDay(year)), name:'春分の日'});
+    return list;
+  }
+  function computeHolidaySet(startYear, endYear) {
+    let raw = [];
+    for (let y = startYear; y <= endYear; y++) raw = raw.concat(baseHolidaysForYear(y));
+    const set = new Map();
+    raw.forEach(h => set.set(iso(h.date), h.name));
+    const sundays = raw.filter(h => h.date.getDay() === 0).map(h => h.date).sort((a,b)=>a-b);
+    sundays.forEach(d => {
+      let cur = addDays(d, 1);
+      while (set.has(iso(cur))) cur = addDays(cur, 1);
+      set.set(iso(cur), '振替休日');
+    });
+    const start = new Date(startYear, 0, 1), end = new Date(endYear, 11, 31);
+    for (let d = new Date(start); d <= end; d = addDays(d,1)) {
+      if (d.getDay() === 0) continue;
+      const key = iso(d);
+      if (set.has(key)) continue;
+      const prev = iso(addDays(d,-1)), next = iso(addDays(d,1));
+      if (set.has(prev) && set.has(next)) set.set(key, '国民の休日');
+    }
+    return set;
+  }
+  function parseMMDD(s) {
+    if (!/^\d{4}$/.test(s)) return null;
+    const m = +s.slice(0,2), d = +s.slice(2,4);
+    if (m < 1 || m > 12) return null;
+    const dt = new Date(2000, m-1, d); // leap year, so 02/29 is accepted as a valid month/day
+    if (dt.getMonth() !== m-1 || dt.getDate() !== d) return null;
+    return { m, d };
+  }
+  function formatMMDDDisplay(s) { return `${s.slice(0,2)}/${s.slice(2,4)}`; }
+  function inRanges(d, ranges) { return ranges.some(r => d >= r.start && d <= r.end); }
+  function getAvailableWeekendDays(startStr, endStr, ranges, useHolidays) {
+    const start = parseISO(startStr), end = parseISO(endStr);
+    const holidaySet = useHolidays ? computeHolidaySet(start.getFullYear(), end.getFullYear()) : new Map();
+    const days = [];
+    for (let d = new Date(start); d <= end; d = addDays(d,1)) {
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) continue;
+      if (inRanges(d, ranges)) continue;
+      if (holidaySet.has(iso(d))) continue;
+      days.push(new Date(d));
+    }
+    return days;
+  }
+
+  // ---------- combinatorics ----------
+  function shuffle(arr) { for (let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+  function combos4(arr) {
+    const res = []; const n = arr.length;
+    for (let a=0;a<n;a++) for (let b=a+1;b<n;b++) for (let c=b+1;c<n;c++) for (let d=c+1;d<n;d++) res.push([arr[a],arr[b],arr[c],arr[d]]);
+    return res;
+  }
+  function permute4(arr) {
+    const results = [];
+    (function bt(cur, rem) {
+      if (rem.length === 0) { results.push(cur.slice()); return; }
+      for (let i=0;i<rem.length;i++) { cur.push(rem[i]); bt(cur, rem.slice(0,i).concat(rem.slice(i+1))); cur.pop(); }
+    })([], arr);
+    return results;
+  }
+  function assignSeats(groupPlayers, seatCount) {
+    const perms = permute4(groupPlayers);
+    let best = null, bestScore = Infinity;
+    perms.forEach(perm => {
+      let score = 0;
+      perm.forEach((p,i) => { const c = seatCount[p][SEATS[i]]; score += c*c; });
+      score += Math.random()*0.001;
+      if (score < bestScore) { bestScore = score; best = perm; }
+    });
+    const assignment = best.map((p,i) => ({ name: p, seat: SEATS[i] }));
+    assignment.forEach(a => { seatCount[a.name][a.seat]++; });
+    return assignment;
+  }
+
+  function computeGroupCount(playerCount, sessionsPerPlayer) {
+    const total = playerCount * sessionsPerPlayer;
+    const rem = total % GROUP_SIZE;
+    return (total + (rem === 0 ? 0 : GROUP_SIZE - rem)) / GROUP_SIZE;
+  }
+
+  function buildLeagueSchedule(players, sessionsPerPlayer, dates) {
+    const groupsNeeded = computeGroupCount(players.length, sessionsPerPlayer);
+    const daysNeeded = Math.ceil(groupsNeeded / 2);
+    const useDates = dates.slice(0, daysNeeded);
+
+    const need = {}; players.forEach(p => need[p] = sessionsPerPlayer);
+    const totalAttendance = players.length * sessionsPerPlayer;
+    const remainder = totalAttendance % GROUP_SIZE;
+    if (remainder !== 0) {
+      const extra = GROUP_SIZE - remainder;
+      const pool = shuffle(players.slice());
+      for (let i=0;i<extra;i++) need[pool[i % pool.length]]++;
+    }
+
+    const pairCount = {};
+    const pairKey = (x,y) => x < y ? x+'|'+y : y+'|'+x;
+    const seatCount = {}; players.forEach(p => seatCount[p] = { '東家':0, '南家':0, '西家':0, '北家':0 });
+
+    let prevDate = null, prevPlayers = new Set();
+    const results = [];
+    let anyRelaxed = false;
+
+    useDates.forEach((date, di) => {
+      const isLast = di === useDates.length - 1;
+      const slotsThisDate = (isLast && groupsNeeded % 2 === 1) ? 1 : 2;
+      const isConsecutive = prevDate && ((date - prevDate) === 86400000);
+      const excludePrev = isConsecutive ? prevPlayers : new Set();
+      const thisDateUsed = new Set();
+      const slotGroups = [];
+      for (let s=0; s<slotsThisDate; s++) {
+        let candidates = players.filter(p => need[p] > 0 && !thisDateUsed.has(p) && !excludePrev.has(p));
+        if (candidates.length < GROUP_SIZE) { candidates = players.filter(p => need[p] > 0 && !thisDateUsed.has(p)); anyRelaxed = true; }
+        if (candidates.length < GROUP_SIZE) { candidates = players.filter(p => need[p] > 0); anyRelaxed = true; }
+        candidates = shuffle(candidates);
+        candidates.sort((a,b) => need[b]-need[a]);
+        const top = candidates.slice(0, Math.min(candidates.length, 9));
+        let bestCombo = null, bestScore = Infinity;
+        combos4(top).forEach(combo => {
+          let score = 0;
+          for (let i=0;i<4;i++) for (let j=i+1;j<4;j++) score += (pairCount[pairKey(combo[i],combo[j])] || 0);
+          if (score < bestScore) { bestScore = score; bestCombo = combo; }
+        });
+        bestCombo.forEach(p => { need[p]--; thisDateUsed.add(p); });
+        for (let i=0;i<4;i++) for (let j=i+1;j<4;j++) { const k = pairKey(bestCombo[i],bestCombo[j]); pairCount[k] = (pairCount[k]||0)+1; }
+        const seated = assignSeats(bestCombo, seatCount);
+        slotGroups.push(seated);
+      }
+      prevDate = date;
+      prevPlayers = thisDateUsed;
+      results.push({ date, am: slotGroups[0], pm: slotGroups[1] || null });
+    });
+
+    return { results, daysNeeded, groupsNeeded, anyRelaxed, pairCount, seatCount };
+  }
+
+  function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ---------- dynamic league state ----------
+  let leagueSeq = 0;
+  let leagues = [];
+  function newLeague(name, target) { leagueSeq++; return { uid: 'L'+leagueSeq, name, target }; }
+  function seedDefaultLeagues() {
+    leagues = [ newLeague('Aリーグ', 30), newLeague('B1リーグ', 30), newLeague('B2リーグ', 30) ];
+  }
+
+  // ---------- dynamic player state ----------
+  let playerSeq = 0;
+  let players = [];
+  function newPlayer(name, leagueUid) { playerSeq++; return { uid: 'P'+playerSeq, name: name||'', leagueUid: leagueUid||'' }; }
+
+  // ---------- exclusion period state ----------
+  let exclSeq = 0;
+  let exclusions = [];
+  function newExclusion(startRaw, endRaw) { exclSeq++; return { uid: 'X'+exclSeq, startRaw, endRaw }; }
+
+  function renderExclusions() {
+    const container = document.getElementById('excl-list');
+    document.getElementById('excl-count').textContent = exclusions.length;
+    container.innerHTML = exclusions.map(x => `
+      <div class="excl-row" data-uid="${x.uid}">
+        <span>${formatMMDDDisplay(x.startRaw)} 〜 ${formatMMDDDisplay(x.endRaw)}</span>
+        <button class="remove-player-btn" data-action="remove" aria-label="削除">✕</button>
+      </div>
+    `).join('');
+    container.querySelectorAll('.excl-row').forEach(row => {
+      const uid = row.dataset.uid;
+      row.querySelector('[data-action="remove"]').addEventListener('click', () => {
+        exclusions = exclusions.filter(x => x.uid !== uid);
+        renderExclusions();
+        persistState();
+      });
+    });
+  }
+
+  function digitsOnly(el) { el.addEventListener('input', () => { el.value = el.value.replace(/\D/g,'').slice(0,4); }); }
+  digitsOnly(document.getElementById('excl-start-input'));
+  digitsOnly(document.getElementById('excl-end-input'));
+
+  document.getElementById('add-excl-btn').addEventListener('click', () => {
+    const startEl = document.getElementById('excl-start-input');
+    const endEl = document.getElementById('excl-end-input');
+    const errEl = document.getElementById('excl-error');
+    const startRaw = startEl.value.trim();
+    const endRaw = endEl.value.trim() || startRaw;
+    if (!parseMMDD(startRaw) || !parseMMDD(endRaw)) {
+      errEl.textContent = '月日は4桁の数字（例：0429）で入力してください。';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+    exclusions.push(newExclusion(startRaw, endRaw));
+    startEl.value = '';
+    endEl.value = '';
+    startEl.focus();
+    renderExclusions();
+    persistState();
+  });
+
+  function exclusionsToRanges(seasonStartYear) {
+    return exclusions.map(x => {
+      const s = parseMMDD(x.startRaw), e = parseMMDD(x.endRaw);
+      if (!s || !e) return null;
+      const start = new Date(seasonStartYear, s.m-1, s.d);
+      let end = new Date(seasonStartYear, e.m-1, e.d);
+      if (end < start) end = new Date(seasonStartYear+1, e.m-1, e.d); // e.g. 12/29〜01/03 wraps into the next year
+      return { start, end };
+    }).filter(Boolean);
+  }
+
+  function renderLeagues() {
+    const container = document.getElementById('league-list');
+    container.innerHTML = leagues.map((l, idx) => {
+      const color = PALETTE[idx % PALETTE.length];
+      const count = players.filter(p => p.leagueUid === l.uid && p.name.trim()).length;
+      return `
+        <div class="league-card" data-uid="${l.uid}">
+          <div class="league-card-head">
+            <span class="league-color-dot" style="background:${color};"></span>
+            <input type="text" class="league-name-input" data-field="name" value="${escapeHtml(l.name)}">
+            <span class="league-count-badge">登録 ${count}名</span>
+            <button class="remove-league-btn" data-action="remove">削除</button>
+          </div>
+          <div class="grid3">
+            <div><label style="margin-top:0;">目標半荘数</label><input type="number" min="1" data-field="target" value="${l.target}"></div>
+            <div></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.league-card').forEach(card => {
+      const uid = card.dataset.uid;
+      const league = leagues.find(l => l.uid === uid);
+      card.querySelectorAll('[data-field]').forEach(field => {
+        const key = field.dataset.field;
+        field.addEventListener('input', () => {
+          if (key === 'target') league[key] = parseInt(field.value,10) || 0;
+          else league[key] = field.value;
+          if (key === 'name') { renderLeagues(); renderPlayers(); updateRegistrySummary(); }
+          persistState();
+        });
+      });
+      card.querySelector('[data-action="remove"]').addEventListener('click', () => {
+        if (leagues.length <= 1) { alert('リーグは最低1つ必要です。'); return; }
+        leagues = leagues.filter(l => l.uid !== uid);
+        players.forEach(p => { if (p.leagueUid === uid) p.leagueUid = ''; });
+        renderLeagues();
+        renderPlayers();
+        updateRegistrySummary();
+        persistState();
+      });
+    });
+
+    renderNewPlayerLeagueSelect();
+  }
+
+  function renderNewPlayerLeagueSelect() {
+    const sel = document.getElementById('new-player-league');
+    const prevValue = sel.value;
+    sel.innerHTML = `<option value="">未選択</option>` + leagues.map(l => `<option value="${l.uid}">${escapeHtml(l.name)}</option>`).join('');
+    if (leagues.some(l => l.uid === prevValue)) sel.value = prevValue;
+    else sel.value = '';
+  }
+
+  document.getElementById('add-league-btn').addEventListener('click', () => {
+    leagues.push(newLeague('新しいリーグ', 30));
+    renderLeagues();
+    renderPlayers();
+    updateRegistrySummary();
+    persistState();
+  });
+
+  function leagueOptionsHtml(selectedUid) {
+    const validUid = leagues.some(l => l.uid === selectedUid);
+    let html = `<option value="">未選択</option>`;
+    leagues.forEach(l => {
+      html += `<option value="${l.uid}" ${selectedUid === l.uid ? 'selected' : ''}>${escapeHtml(l.name)}</option>`;
+    });
+    return { html, unassigned: !validUid };
+  }
+
+  let playerFilterUid = 'ALL';
+
+  function renderPlayerFilterTabs() {
+    const container = document.getElementById('player-filter-tabs');
+    if (playerFilterUid !== 'ALL' && !leagues.some(l => l.uid === playerFilterUid)) playerFilterUid = 'ALL';
+    const tabs = [{ uid: 'ALL', name: 'すべて' }, ...leagues.map(l => ({ uid: l.uid, name: l.name }))];
+    container.innerHTML = tabs.map(t =>
+      `<button type="button" class="filter-tab-btn ${playerFilterUid === t.uid ? 'active' : ''}" data-uid="${t.uid}">${escapeHtml(t.name)}</button>`
+    ).join('');
+    container.querySelectorAll('.filter-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        playerFilterUid = btn.dataset.uid;
+        renderPlayers();
+      });
+    });
+  }
+
+  function renderPlayers() {
+    renderPlayerFilterTabs();
+    const container = document.getElementById('player-list');
+    const visiblePlayers = (playerFilterUid === 'ALL' ? players : players.filter(p => p.leagueUid === playerFilterUid))
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    container.innerHTML = visiblePlayers.map(p => {
+      const { html: optHtml, unassigned } = leagueOptionsHtml(p.leagueUid);
+      return `
+        <div class="player-row" data-uid="${p.uid}">
+          <input type="text" data-field="name" value="${escapeHtml(p.name)}" placeholder="選手名">
+          <select data-field="league" class="${unassigned && p.name.trim() ? 'unassigned' : ''}">${optHtml}</select>
+          <button class="remove-player-btn" data-action="remove" aria-label="削除">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.player-row').forEach(row => {
+      const uid = row.dataset.uid;
+      const player = players.find(p => p.uid === uid);
+      row.querySelector('[data-field="name"]').addEventListener('input', (e) => {
+        player.name = e.target.value;
+        updateRegistrySummary();
+        persistState();
+      });
+      row.querySelector('[data-field="league"]').addEventListener('change', (e) => {
+        player.leagueUid = e.target.value;
+        renderPlayers();
+        renderLeagues();
+        updateRegistrySummary();
+        persistState();
+      });
+      row.querySelector('[data-action="remove"]').addEventListener('click', () => {
+        players = players.filter(p => p.uid !== uid);
+        renderPlayers();
+        renderLeagues();
+        updateRegistrySummary();
+        persistState();
+      });
+    });
+  }
+
+  function addPlayerFromEntryRow() {
+    const nameInput = document.getElementById('new-player-name');
+    const leagueSelect = document.getElementById('new-player-league');
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    players.push(newPlayer(name, leagueSelect.value));
+    nameInput.value = '';
+    leagueSelect.value = '';
+    nameInput.focus();
+    renderPlayers();
+    renderLeagues();
+    updateRegistrySummary();
+    persistState();
+  }
+  document.getElementById('add-player-btn').addEventListener('click', addPlayerFromEntryRow);
+  document.getElementById('new-player-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addPlayerFromEntryRow(); }
+  });
+
+  document.getElementById('bulk-import-btn').addEventListener('click', () => {
+    const raw = document.getElementById('bulk-raw').value;
+    const lines = raw.split('\n').map(s=>s.trim()).filter(Boolean);
+    let added = 0, unmatched = 0;
+    lines.forEach(line => {
+      const parts = line.split(/\t|,/).map(s=>s.trim()).filter(Boolean);
+      if (parts.length < 1 || !parts[0]) return;
+      const name = parts[0];
+      const leagueName = parts[1] || '';
+      let league = leagues.find(l => l.name === leagueName);
+      if (!league && leagueName) league = leagues.find(l => l.name.toLowerCase() === leagueName.toLowerCase());
+      if (leagueName && !league) unmatched++;
+      players.push(newPlayer(name, league ? league.uid : ''));
+      added++;
+    });
+    document.getElementById('bulk-raw').value = '';
+    document.getElementById('bulk-import-result').textContent = added > 0
+      ? `${added}件を追加しました${unmatched > 0 ? `（うち${unmatched}件は所属リーグ名が一致せず未選択のままです。プルダウンで選び直してください）` : ''}。`
+      : '';
+    renderPlayers();
+    renderLeagues();
+    updateRegistrySummary();
+    persistState();
+  });
+
+  function updateRegistrySummary() {
+    const el = document.getElementById('registry-summary');
+    const named = players.filter(p => p.name.trim());
+    document.getElementById('player-count').textContent = named.length;
+    let html = leagues.map(l => `<div class="stat">${escapeHtml(l.name)} <b>${named.filter(p=>p.leagueUid===l.uid).length}</b>名</div>`).join('');
+    el.innerHTML = html;
+
+    const unassigned = named.filter(p => !leagues.some(l => l.uid === p.leagueUid));
+    const seen = {};
+    named.forEach(p => { seen[p.name] = (seen[p.name]||0) + 1; });
+    const dupNames = Object.keys(seen).filter(n => seen[n] > 1);
+
+    if (unassigned.length > 0 || dupNames.length > 0) {
+      let warn = '';
+      if (unassigned.length > 0) warn += `所属リーグが未選択の選手が${unassigned.length}名います。プルダウンから選んでください。<br>`;
+      if (dupNames.length > 0) warn += `同名の選手が${dupNames.length}件あります（${dupNames.map(escapeHtml).join('、')}）。区別できるよう名前に番号等を付けることをおすすめします（現在は自動で区別しています）。`;
+      el.innerHTML += `<div class="warning" style="flex-basis:100%;">${warn}</div>`;
+    }
+  }
+
+  // ---------- generation ----------
+  let lastResult = null;
+
+  function generate() {
+    const seasonStart = document.getElementById('season-start').value;
+    const seasonEnd = document.getElementById('season-end').value;
+    const exclRanges = exclusionsToRanges(parseISO(seasonStart).getFullYear());
+    const useHolidays = document.getElementById('use-holidays').checked;
+    const hanchanPerSession = parseInt(document.getElementById('hanchan-per-session').value,10) || 3;
+
+    const availableDays = getAvailableWeekendDays(seasonStart, seasonEnd, exclRanges, useHolidays);
+
+    const named = players.filter(p => p.name.trim());
+    const seen = {};
+    const namesByLeagueUid = {};
+    leagues.forEach(l => namesByLeagueUid[l.uid] = []);
+    named.forEach(p => {
+      let name = p.name.trim();
+      seen[name] = (seen[name] || 0) + 1;
+      if (seen[name] > 1) name = `${name}#${seen[name]}`;
+      if (namesByLeagueUid.hasOwnProperty(p.leagueUid)) namesByLeagueUid[p.leagueUid].push(name);
+    });
+
+    const leagueMeta = leagues.map((l, idx) => {
+      const players = namesByLeagueUid[l.uid] || [];
+      const sessionsPerPlayer = Math.ceil(l.target / hanchanPerSession);
+      const groupsNeeded = players.length > 0 ? computeGroupCount(players.length, sessionsPerPlayer) : 0;
+      const daysNeeded = Math.ceil(groupsNeeded / 2);
+      return { id: l.uid, label: l.name, color: PALETTE[idx % PALETTE.length], players, target: l.target, sessionsPerPlayer, groupsNeeded, daysNeeded };
+    });
+
+    const totalDaysNeeded = leagueMeta.reduce((s,l)=>s+l.daysNeeded,0);
+    const statsEl = document.getElementById('feasibility-stats');
+    statsEl.innerHTML = `
+      <div class="stat">対象土日（除外後） <b>${availableDays.length}</b>日</div>
+      <div class="stat">必要日数合計 <b>${totalDaysNeeded}</b>日</div>
+      ${leagueMeta.map(l=>`<div class="stat">${escapeHtml(l.label)} <b>${l.daysNeeded}</b>日（${l.players.length}名・${l.groupsNeeded}セッション）</div>`).join('')}
+    `;
+
+    const output = document.getElementById('output');
+    const copyBtn = document.getElementById('copy-btn');
+    const excelBtn = document.getElementById('excel-btn');
+
+    const zeroPlayerLeagues = leagueMeta.filter(l => l.players.length === 0);
+    if (leagueMeta.every(l => l.players.length === 0)) {
+      output.innerHTML = '<div class="empty">選手登録がありません。「選手名,所属リーグ」の形式で入力してください。</div>';
+      copyBtn.style.display = 'none'; excelBtn.style.display = 'none'; document.getElementById('reflect-btn').style.display = 'none';
+      return;
+    }
+
+    const need = {}, assignedCount = {};
+    leagueMeta.forEach(l => { need[l.id] = l.daysNeeded; assignedCount[l.id] = 0; });
+    let idx = 0;
+    const dayAssignments = [];
+    while (idx < availableDays.length) {
+      const remainingLeagues = leagueMeta.filter(l => assignedCount[l.id] < need[l.id]);
+      if (remainingLeagues.length === 0) break;
+      let chosen = remainingLeagues[0];
+      let chosenRatio = need[chosen.id] === 0 ? 0 : assignedCount[chosen.id] / need[chosen.id];
+      remainingLeagues.forEach(l => {
+        const ratio = need[l.id] === 0 ? 0 : assignedCount[l.id] / need[l.id];
+        if (ratio < chosenRatio) { chosen = l; chosenRatio = ratio; }
+      });
+      dayAssignments.push({ date: availableDays[idx], leagueId: chosen.id });
+      assignedCount[chosen.id]++;
+      idx++;
+    }
+    const shortfall = leagueMeta.filter(l => assignedCount[l.id] < need[l.id]);
+
+    let html = '';
+    if (zeroPlayerLeagues.length > 0) {
+      html += `<div class="warning">${zeroPlayerLeagues.map(l=>escapeHtml(l.label)).join('、')}は登録選手が0名のため対象外です。</div>`;
+    }
+    if (shortfall.length > 0) {
+      html += `<div class="warning">対局日が不足しています。${shortfall.map(l=>`${escapeHtml(l.label)}は残り${need[l.id]-assignedCount[l.id]}日分`).join('／')}が未割当です。</div>`;
+    } else if (zeroPlayerLeagues.length === 0) {
+      html += `<div class="ok">対象期間内の土日で全リーグの日程を組めました（${totalDaysNeeded}日使用／候補${availableDays.length}日中）。</div>`;
+    }
+
+    const byMonth = {};
+    const flatRows = [];
+    let anyRelaxedAny = false;
+    leagueMeta.filter(l => l.players.length > 0 && need[l.id] > 0).forEach(l => {
+      const myDates = dayAssignments.filter(a=>a.leagueId===l.id).map(a=>a.date).sort((a,b)=>a-b);
+      const { results, anyRelaxed, pairCount, seatCount } = buildLeagueSchedule(l.players, l.sessionsPerPlayer, myDates);
+      l.pairCount = pairCount;
+      l.seatCount = seatCount;
+      if (anyRelaxed) anyRelaxedAny = true;
+      results.forEach(r => {
+        const mKey = `${r.date.getFullYear()}年${r.date.getMonth()+1}月`;
+        if (!byMonth[mKey]) byMonth[mKey] = [];
+        const row = { date: r.date, league: l, am: r.am, pm: r.pm };
+        byMonth[mKey].push(row);
+        flatRows.push(row);
+      });
+    });
+
+    if (anyRelaxedAny) {
+      html += `<div class="warning">一部、対局日が密集しているため「2日連続で出ない」制約を緩和した箇所があります。除外期間を見直すか対局可能日を増やすと改善できます。</div>`;
+    }
+
+    const monthKeys = Object.keys(byMonth).sort((a,b) => byMonth[a][0].date - byMonth[b][0].date);
+    const weekdayJ = ['日','月','火','水','木','金','土'];
+
+    if (monthKeys.length === 0) {
+      html += '<div class="empty">割り当てられる対局日がありませんでした。期間や除外設定を見直してください。</div>';
+    } else {
+      monthKeys.forEach((mKey, mi) => {
+        const rows = byMonth[mKey].slice().sort((a,b)=>a.date-b.date);
+        html += `<details class="month" ${mi===0 ? 'open' : ''}><summary>${mKey}（${rows.length}日）</summary><table class="match-table"><tbody>`;
+        rows.forEach(({date, league, am, pm}) => {
+          const dstr = `${date.getMonth()+1}/${date.getDate()}(${weekdayJ[date.getDay()]})`;
+          const fmt = grp => grp.map(x => `${escapeHtml(x.name)}<span class="seat">(${x.seat})</span>`).join('・');
+          html += `<tr>
+            <td class="date-cell">${dstr}</td>
+            <td class="league-cell"><span class="badge" style="background:${league.color};">${escapeHtml(league.label)}</span></td>
+            <td class="session-cell">
+              <div><span class="slot-label">前半</span>${fmt(am)}</div>
+              ${pm ? `<div><span class="slot-label">後半</span>${fmt(pm)}</div>` : '<div><span class="slot-label">後半</span>ー</div>'}
+            </td>
+          </tr>`;
+        });
+        html += '</tbody></table></details>';
+      });
+    }
+
+    const statsLeagues = leagueMeta.filter(l => l.players.length > 0 && l.seatCount);
+    if (statsLeagues.length > 0) {
+      html += `<details class="month"><summary>同卓回数・座席（東南西北）の統計を見る</summary>`;
+      statsLeagues.forEach(l => {
+        const sortedPlayers = l.players.slice().sort((a,b)=>a.localeCompare(b,'ja'));
+        html += `<h3 style="font-family:'Shippori Mincho',serif;font-size:13.5px;margin:16px 0 8px;">${escapeHtml(l.label)}</h3>`;
+
+        html += `<p class="hint" style="margin-bottom:6px;">座席（東南西北）の回数</p><div class="table-scroll"><table class="stat-table"><thead><tr><th>選手名</th><th>東家</th><th>南家</th><th>西家</th><th>北家</th><th>合計</th></tr></thead><tbody>`;
+        sortedPlayers.forEach(p => {
+          const c = l.seatCount[p] || { '東家':0,'南家':0,'西家':0,'北家':0 };
+          const total = c['東家']+c['南家']+c['西家']+c['北家'];
+          html += `<tr><td>${escapeHtml(p)}</td><td>${c['東家']}</td><td>${c['南家']}</td><td>${c['西家']}</td><td>${c['北家']}</td><td>${total}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+
+        html += `<details style="margin-top:10px;"><summary style="font-size:12px;color:var(--bamboo);">同卓回数マトリクスを表示</summary><div class="table-scroll"><table class="stat-table matrix-table"><thead><tr><th></th>${sortedPlayers.map(p=>`<th>${escapeHtml(p)}</th>`).join('')}</tr></thead><tbody>`;
+        sortedPlayers.forEach(p1 => {
+          html += `<tr><th>${escapeHtml(p1)}</th>`;
+          sortedPlayers.forEach(p2 => {
+            if (p1 === p2) { html += `<td class="diag">ー</td>`; return; }
+            const key = p1 < p2 ? p1+'|'+p2 : p2+'|'+p1;
+            const n = l.pairCount[key] || 0;
+            html += `<td>${n}</td>`;
+          });
+          html += `</tr>`;
+        });
+        html += `</tbody></table></div></details>`;
+      });
+      html += `</details>`;
+    }
+
+    output.innerHTML = html;
+    const hasRows = monthKeys.length > 0;
+    copyBtn.style.display = hasRows ? 'inline-block' : 'none';
+    excelBtn.style.display = hasRows ? 'inline-block' : 'none';
+    document.getElementById('reflect-btn').style.display = hasRows ? 'inline-block' : 'none';
+    lastResult = { flatRows, leagueMeta, weekdayJ };
+
+    copyBtn.onclick = () => {
+      let text = '対局日程\n\n';
+      monthKeys.forEach(mKey => {
+        text += `【${mKey}】\n`;
+        byMonth[mKey].slice().sort((a,b)=>a.date-b.date).forEach(({date, league, am, pm}) => {
+          const fmt = grp => grp.map(x=>`${x.name}(${x.seat})`).join('・');
+          text += `${iso(date)} ${league.label}\n  前半: ${fmt(am)}\n  後半: ${pm ? fmt(pm) : 'ー'}\n`;
+        });
+        text += '\n';
+      });
+      navigator.clipboard && navigator.clipboard.writeText(text).catch(()=>{});
+    };
+
+    persistState();
+  }
+
+  // ---------- excel export ----------
+  async function exportExcel() {
+    if (!lastResult || !lastResult.flatRows.length) return;
+    if (typeof XLSX === 'undefined') { alert('Excel出力ライブラリの読み込みに失敗しました。ページを再読み込みしてください。'); return; }
+    const downloads = window.claude ? await window.claude.use('downloads') : null;
+    if (!downloads) { alert('この環境ではダウンロード機能が利用できません。'); return; }
+
+    const { flatRows, leagueMeta, weekdayJ } = lastResult;
+    const SEAT_ORDER = ['東家','南家','西家','北家'];
+    const seatMap = grp => { const m = {}; grp.forEach(x => { m[x.seat] = x.name; }); return m; };
+    const scheduleRows = [[
+      '日付','曜日','リーグ',
+      '前半_東家','前半_南家','前半_西家','前半_北家',
+      '後半_東家','後半_南家','後半_西家','後半_北家'
+    ]];
+    flatRows.slice().sort((a,b)=>a.date-b.date).forEach(({date, league, am, pm}) => {
+      const amM = seatMap(am), pmM = pm ? seatMap(pm) : {};
+      scheduleRows.push([
+        iso(date), weekdayJ[date.getDay()], league.label,
+        ...SEAT_ORDER.map(s => amM[s] || ''),
+        ...SEAT_ORDER.map(s => pmM[s] || '')
+      ]);
+    });
+    const wsSchedule = XLSX.utils.aoa_to_sheet(scheduleRows);
+    wsSchedule['!cols'] = [{wch:12},{wch:6},{wch:14},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12}];
+
+    const summaryRows = [['リーグ名','人数','目標半荘数','必要セッション数','必要日数']];
+    leagueMeta.forEach(l => summaryRows.push([l.label, l.players.length, l.target, l.groupsNeeded, l.daysNeeded]));
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+    wsSummary['!cols'] = [{wch:16},{wch:8},{wch:12},{wch:14},{wch:10}];
+
+    const seatRows = [['選手名','リーグ','東家','南家','西家','北家','合計']];
+    leagueMeta.forEach(l => {
+      if (!l.seatCount) return;
+      const sortedPlayers = l.players.slice().sort((a,b)=>a.localeCompare(b,'ja'));
+      sortedPlayers.forEach(p => {
+        const c = l.seatCount[p] || { '東家':0,'南家':0,'西家':0,'北家':0 };
+        const total = c['東家']+c['南家']+c['西家']+c['北家'];
+        seatRows.push([p, l.label, c['東家'], c['南家'], c['西家'], c['北家'], total]);
+      });
+    });
+    const wsSeat = XLSX.utils.aoa_to_sheet(seatRows);
+    wsSeat['!cols'] = [{wch:16},{wch:12},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8}];
+
+    const pairSheets = [];
+    leagueMeta.forEach(l => {
+      if (!l.pairCount) return;
+      const sortedPlayers = l.players.slice().sort((a,b)=>a.localeCompare(b,'ja'));
+      const rows = [['', ...sortedPlayers]];
+      sortedPlayers.forEach(p1 => {
+        const row = [p1];
+        sortedPlayers.forEach(p2 => {
+          if (p1 === p2) { row.push(''); return; }
+          const key = p1 < p2 ? p1+'|'+p2 : p2+'|'+p1;
+          row.push(l.pairCount[key] || 0);
+        });
+        rows.push(row);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{wch:14}, ...sortedPlayers.map(()=>({wch:8}))];
+      // Excel sheet names: max 31 chars, no \ / ? * [ ]
+      let sheetName = ('同卓_' + l.label).replace(/[\\/?*\[\]]/g, '').slice(0, 31);
+      pairSheets.push({ name: sheetName, ws });
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsSchedule, '対局日程');
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'リーグ設定');
+    XLSX.utils.book_append_sheet(wb, wsSeat, '座席バランス');
+    pairSheets.forEach(s => XLSX.utils.book_append_sheet(wb, s.ws, s.name));
+    const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([out], { type: 'application/octet-stream' });
+
+    try {
+      if (typeof downloads !== 'undefined' && downloads.save) { await downloads.save({ filename: '対局日程.xlsx', data: blob }); }
+      else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '対局日程.xlsx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500); }
+    } catch (e) {
+      if (e && e.code === 'declined') return;
+      alert('Excelの保存に失敗しました（' + (e && e.code ? e.code : 'unknown') + '）。');
+    }
+  }
+
+  // ---------- persistence ----------
+  function storageKey() { return 'mahjong-schedule-v6'; }
+  function persistState() {
+    try {
+      const data = {
+        seasonStart: document.getElementById('season-start').value,
+        seasonEnd: document.getElementById('season-end').value,
+        exclusions: exclusions.map(x => ({ startRaw: x.startRaw, endRaw: x.endRaw })),
+        useHolidays: document.getElementById('use-holidays').checked,
+        hanchanPerSession: document.getElementById('hanchan-per-session').value,
+        leagues: leagues.map(l => ({ name: l.name, target: l.target })),
+        players: players.map(p => ({ name: p.name, leagueIndex: leagues.findIndex(l => l.uid === p.leagueUid) }))
+      };
+      localStorage.setItem(storageKey(), JSON.stringify(data));
+    } catch(e) {}
+  }
+  function loadState() {
+    const defaultYear = new Date().getFullYear() + 1;
+    document.getElementById('season-start').value = `${defaultYear}-01-01`;
+    document.getElementById('season-end').value = `${defaultYear}-12-31`;
+    seedDefaultLeagues();
+    try {
+      const raw = localStorage.getItem(storageKey());
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.seasonStart) document.getElementById('season-start').value = data.seasonStart;
+      if (data.seasonEnd) document.getElementById('season-end').value = data.seasonEnd;
+      if (data.exclusions && data.exclusions.length) exclusions = data.exclusions.map(x => newExclusion(x.startRaw, x.endRaw));
+      if (typeof data.useHolidays === 'boolean') document.getElementById('use-holidays').checked = data.useHolidays;
+      if (data.hanchanPerSession) document.getElementById('hanchan-per-session').value = data.hanchanPerSession;
+      if (data.leagues && data.leagues.length) leagues = data.leagues.map(l => newLeague(l.name, l.target));
+      if (data.players && data.players.length) {
+        players = data.players.map(p => {
+          const league = (p.leagueIndex >= 0 && leagues[p.leagueIndex]) ? leagues[p.leagueIndex] : null;
+          return newPlayer(p.name, league ? league.uid : '');
+        });
+      }
+    } catch(e) {}
+  }
+
+  loadState();
+  renderLeagues();
+  renderPlayers();
+  renderExclusions();
+  updateRegistrySummary();
+  document.getElementById('generate-btn').addEventListener('click', generate);
+  document.getElementById('excel-btn').addEventListener('click', exportExcel);
+  document.getElementById('reflect-btn').addEventListener('click', () => {
+    if (!lastResult || !lastResult.flatRows.length) return;
+    const hanchan = parseInt(document.getElementById('hanchan-per-session').value, 10) || 3;
+    const data = {};
+    lastResult.flatRows.forEach(({ date, league, am, pm }) => {
+      const key = `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
+      const code = league.label.replace(/リーグ$/, '');
+      const slot = (grp, time) => {
+        const seatOf = {}; grp.forEach(x => { seatOf[x.name] = x.seat.charAt(0); });
+        return { league: code, color: league.color, hanchan, time, players: grp.map(x => x.name), seatOf };
+      };
+      (data[key] = data[key] || { days: [] }).days.push({ date: date.getDate(), type: 'match', matches: [slot(am, '前半'), pm ? slot(pm, '後半') : null].filter(Boolean) });
+    });
+    Object.values(data).forEach(m => m.days.sort((a, b) => a.date - b.date));
+    if (window.parent !== window) window.parent.postMessage({ type: 'ema-schedule', data }, '*');
+    else alert('日程表と統合したページで開いてください。');
+  });
+})();
+<\/script>
+</body>
+</html>
+</script>
+<script>
+(function () {
+  const LS = 'ema-preview-schedule';
+  const $ = id => document.getElementById(id);
+  const src = id => $(id).textContent.replace(/<\\\/script/g, '<' + '/script').replace(/<\\!--/g, '<' + '!--');
+  const read = t => { try { return JSON.parse($(t).textContent) || {}; } catch (e) { return {}; } };
+  const getPreview = () => { try { const r = localStorage.getItem(LS); return r ? JSON.parse(r) : null; } catch (e) { return null; } };
+  const safeJSON = o => JSON.stringify(o).replace(/</g, '\\u003c');
+
+  function layout() { const h = $('top').offsetHeight; ['f-viewer', 'f-gen'].forEach(id => { const f = $(id); f.style.top = h + 'px'; f.style.height = 'calc(100% - ' + h + 'px)'; }); }
+  function loadViewer() {
+    const ex = getPreview() || read('published-data');
+    let html = src('src-viewer');
+    if (Object.keys(ex).length) html = html.replace('<script>', () => '<script>window.__EXTRA_SCHEDULE=' + safeJSON(ex) + ';<\/script>\n<script>');
+    $('f-viewer').srcdoc = html;
+    $('pubbar').hidden = !getPreview();
+    layout();
+  }
+  function show(t) {
+    $('f-viewer').hidden = t !== 'viewer'; $('f-gen').hidden = t !== 'gen';
+    document.querySelectorAll('#bar button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+    layout();
+  }
+  document.querySelectorAll('#bar button').forEach(b => b.addEventListener('click', () => show(b.dataset.t)));
+
+  window.addEventListener('message', e => {
+    if (e.source !== $('f-gen').contentWindow || !e.data || e.data.type !== 'ema-schedule') return;
+    try { localStorage.setItem(LS, JSON.stringify(e.data.data)); } catch (err) { alert('この端末では一時保存ができませんでした。'); return; }
+    loadViewer(); show('viewer');
+  });
+  $('discard').addEventListener('click', () => { try { localStorage.removeItem(LS); } catch (e) {} loadViewer(); });
+  $('dl').addEventListener('click', () => {
+    const data = getPreview(); if (!data) return;
+    const clone = document.documentElement.cloneNode(true);
+    clone.querySelectorAll('iframe').forEach(f => { f.removeAttribute('srcdoc'); f.removeAttribute('style'); });
+    clone.querySelector('#f-gen').setAttribute('hidden', '');
+    clone.querySelector('#f-viewer').removeAttribute('hidden');
+    clone.querySelector('#pubbar').setAttribute('hidden', '');
+    clone.querySelectorAll('#bar button').forEach(b => b.classList.toggle('on', b.dataset.t === 'viewer'));
+    clone.querySelector('#published-data').textContent = safeJSON(data);
+    const blob = new Blob(['<!DOCTYPE html>\n' + clone.outerHTML], { type: 'text/html' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'index.html';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  });
+
+  $('f-gen').srcdoc = src('src-gen');
+  loadViewer(); show('viewer');
+  window.addEventListener('resize', layout);
+})();
+</script>
+</body>
+</html>
