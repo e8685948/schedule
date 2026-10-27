@@ -223,10 +223,219 @@
    {
     "name": "廣松翔人",
     "league": ""
+   },
+   {
+    "name": "こうへー",
+    "league": ""
+   },
+   {
+    "name": "shota",
+    "league": ""
+   },
+   {
+    "name": "白藤",
+    "league": ""
+   },
+   {
+    "name": "白崎翔",
+    "league": ""
+   },
+   {
+    "name": "たにかわ",
+    "league": ""
+   },
+   {
+    "name": "津村悠介",
+    "league": ""
+   },
+   {
+    "name": "Tomoaki",
+    "league": ""
+   },
+   {
+    "name": "中里良平",
+    "league": ""
+   },
+   {
+    "name": "猫",
+    "league": ""
+   },
+   {
+    "name": "麻衣子",
+    "league": ""
+   },
+   {
+    "name": "やまぐちさとる",
+    "league": ""
+   },
+   {
+    "name": "山下遼馬",
+    "league": ""
+   },
+   {
+    "name": "よしあき",
+    "league": ""
+   },
+   {
+    "name": "りこ",
+    "league": ""
+   },
+   {
+    "name": "川井田",
+    "league": ""
+   },
+   {
+    "name": "光輝",
+    "league": ""
+   },
+   {
+    "name": "鷹村",
+    "league": ""
+   },
+   {
+    "name": "はしもと",
+    "league": ""
+   },
+   {
+    "name": "わたなべ",
+    "league": ""
+   },
+   {
+    "name": "歩夢",
+    "league": ""
+   },
+   {
+    "name": "しなむら",
+    "league": ""
+   },
+   {
+    "name": "岸野",
+    "league": ""
+   },
+   {
+    "name": "なかた",
+    "league": ""
+   },
+   {
+    "name": "shun",
+    "league": ""
+   },
+   {
+    "name": "まみ",
+    "league": ""
+   },
+   {
+    "name": "竹下",
+    "league": ""
+   },
+   {
+    "name": "ひやま",
+    "league": ""
+   },
+   {
+    "name": "はたの",
+    "league": ""
+   },
+   {
+    "name": "小松",
+    "league": ""
+   },
+   {
+    "name": "伊藤",
+    "league": ""
+   },
+   {
+    "name": "中平",
+    "league": ""
+   },
+   {
+    "name": "花井",
+    "league": ""
+   },
+   {
+    "name": "りお",
+    "league": ""
+   },
+   {
+    "name": "もも",
+    "league": ""
+   },
+   {
+    "name": "NAO",
+    "league": ""
+   },
+   {
+    "name": "星野",
+    "league": ""
+   },
+   {
+    "name": "まこつ",
+    "league": ""
+   },
+   {
+    "name": "原",
+    "league": ""
+   },
+   {
+    "name": "やまけん",
+    "league": ""
+   },
+   {
+    "name": "米本",
+    "league": ""
+   },
+   {
+    "name": "よしお",
+    "league": ""
+   },
+   {
+    "name": "じゅんぺい",
+    "league": ""
+   },
+   {
+    "name": "やじま",
+    "league": ""
+   },
+   {
+    "name": "やざき",
+    "league": ""
+   },
+   {
+    "name": "木村たくや",
+    "league": ""
+   },
+   {
+    "name": "原大貴",
+    "league": ""
+   },
+   {
+    "name": "さとう",
+    "league": ""
+   },
+   {
+    "name": "やすどめ",
+    "league": ""
+   }
+  ]
+ },
+ "leagues": {
+  "2027": [
+   {
+    "name": "A",
+    "target": 30
+   },
+   {
+    "name": "B1",
+    "target": 30
+   },
+   {
+    "name": "B2",
+    "target": 30
    }
   ]
  },
  "genState": {
+  "genYear": "2027",
   "seasonStart": "2027-01-01",
   "seasonEnd": "2027-12-31",
   "exclusions": [],
@@ -244,9 +453,58 @@
    {
     "name": "B2リーグ",
     "target": 30
+   },
+   {
+    "name": "A1リーグ",
+    "target": 30
    }
   ],
-  "players": []
+  "players": [
+   {
+    "name": "あずさ",
+    "leagueIndex": 3
+   },
+   {
+    "name": "いまいたくま",
+    "leagueIndex": 3
+   },
+   {
+    "name": "うすい",
+    "leagueIndex": 3
+   },
+   {
+    "name": "KAZU",
+    "leagueIndex": 3
+   },
+   {
+    "name": "kazuki",
+    "leagueIndex": 3
+   },
+   {
+    "name": "蟹池",
+    "leagueIndex": 3
+   },
+   {
+    "name": "川島直己",
+    "leagueIndex": 3
+   },
+   {
+    "name": "北川翔太",
+    "leagueIndex": 3
+   },
+   {
+    "name": "倉岡研一",
+    "leagueIndex": 3
+   },
+   {
+    "name": "志和友也",
+    "leagueIndex": 3
+   },
+   {
+    "name": "廣松翔人",
+    "leagueIndex": 3
+   }
+  ]
  },
- "updated": "2026-10-27T04:01:56.259Z"
+ "updated": "2026-10-27T04:36:08.304Z"
 }
