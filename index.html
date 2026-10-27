@@ -899,8 +899,7 @@
 
 
     <div class="info-row" id="legend"><div class="legend">
-      <div class="legend-item"><span class="legend-dot a1"></span>A1リーグ</div>
-      <div class="legend-item"><span class="legend-dot a2"></span>A2リーグ</div>
+      <span id="legend-lg" style="display:contents"></span>
       <div class="legend-item"><span class="legend-dot study"></span>勉強会</div>
       <div class="legend-item"><span class="legend-dot rest"></span>休場</div>
       <div class="legend-item"><span class="legend-dot rote"></span>替＝ローテ</div>
@@ -1231,6 +1230,16 @@ function buildFilter() {
     codes = [];
     (data.days || []).forEach(e => (e.matches || []).forEach(mt => { if (!codes.includes(mt.league)) codes.push(mt.league); }));
   }
+  // 選手登録の「リーグ設定」（表示中の年度）に合わせる。月の日程にあるリーグも漏らさず出す
+  const cfg = (((window.__LEAGUES || {})[String(curY)]) || []).map(l => String(l.name || '').trim().replace(/リーグ$/, '')).filter(Boolean);
+  if (cfg.length) {
+    const inMonth = [];
+    ((data && data.days) || []).forEach(e => (e.matches || []).forEach(mt => { if (!inMonth.includes(mt.league)) inMonth.push(mt.league); }));
+    codes = [...new Set([...cfg, ...inMonth])];
+  }
+  const lgColor = c => { let col = ''; Object.values(SCHEDULE).some(mo => (mo.days || []).some(e => (e.matches || []).some(mt => { if (mt.league === c && mt.color) { col = mt.color; return true; } }))); return col; };
+  const lgl = $('legend-lg');
+  if (lgl) lgl.innerHTML = codes.map(c => { const lc = c.toLowerCase(), col = lgColor(c); return `<div class="legend-item"><span class="legend-dot ${(lc === 'a1' || lc === 'a2') ? lc : ''}"${col && lc !== 'a1' && lc !== 'a2' ? ` style="background:${esc(col)}"` : ''}></span>${esc(c)}リーグ</div>`; }).join('');
   if (curFilter !== 'all' && !codes.some(c => c.toLowerCase() === curFilter)) curFilter = 'all';
   $('league-filter').innerHTML = [['all', '全て'], ...codes.map(c => [c.toLowerCase(), c])]
     .map(([k, t]) => `<button class="filter-btn${k === curFilter ? ' active' : ''}" data-league="${esc(k)}">${esc(t)}</button>`).join('');
