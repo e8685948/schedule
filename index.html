@@ -2,31 +2,56 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>E.M.A 龍聖戦 日程</title>
 <style>
   html, body { margin: 0; height: 100%; background: #111820; font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; }
-  #top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; background: #1a1a1a; color: #fef9ed; padding-top: env(safe-area-inset-top, 0px); }
+  #top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; background: #1a1a1a; color: #fef9ed; }
+  #top[hidden], #pubbar[hidden], #modal[hidden], iframe[hidden] { display: none; }
   #bar { display: flex; gap: 6px; padding: 6px 8px; }
   #bar button { flex: 1; min-height: 38px; border: 1px solid #8b2818; border-radius: 9px; background: transparent; color: #fef9ed; font-size: 13px; font-weight: 700; cursor: pointer; }
   #bar button.on { background: #8b2818; }
+  #bar #cfg { flex: 0 0 46px; }
   #pubbar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #8b6914; font-size: 11px; line-height: 1.4; }
-  #pubbar[hidden] { display: none; }
   #pubbar span { flex: 1; }
-  #pubbar button { min-height: 32px; padding: 0 10px; border: none; border-radius: 7px; background: #fef9ed; color: #5a3a00; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-  iframe { position: fixed; left: 0; right: 0; top: 52px; bottom: 0; width: 100%; height: calc(100% - 52px); border: 0; background: #f3ead7; }
-  iframe[hidden] { display: none; }
+  #pubbar button { min-height: 32px; padding: 0 12px; border: none; border-radius: 7px; background: #fef9ed; color: #5a3a00; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  iframe { position: fixed; left: 0; right: 0; top: 0; bottom: 0; width: 100%; height: 100%; border: 0; background: #f3ead7; }
+  #modal { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  #modal[hidden] { display: none; }
+  .card { width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; background: #fef9ed; color: #1a1a1a; border-radius: 14px; padding: 18px 16px; font-size: 13px; line-height: 1.7; }
+  .card h2 { margin: 0 0 8px; font-size: 16px; }
+  .card label { display: block; margin: 10px 0 4px; font-weight: 700; font-size: 12px; }
+  .card input { width: 100%; box-sizing: border-box; padding: 9px; font-size: 16px; border: 1px solid #b9a77a; border-radius: 8px; background: #fff; }
+  .card .row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .card button { flex: 1; min-height: 40px; border: none; border-radius: 9px; background: #8b2818; color: #fef9ed; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .card button.sub { background: #e6dcc0; color: #3a2818; }
+  .card details { margin-top: 12px; font-size: 12px; color: #5a4a3a; }
+  #cfg-msg { margin-top: 10px; min-height: 1.4em; font-weight: 700; color: #8b2818; }
 </style>
 </head>
 <body>
-<div id="top">
-  <div id="bar"><button data-t="viewer" class="on">📅 日程表</button><button data-t="gen">🛠 日程作成</button></div>
-  <div id="pubbar" hidden><span>プレビュー中：まだ会員には見えません。公開するには保存したHTMLをGitHubの index.html に差し替えてください。</span><button id="dl">公開用に保存</button><button id="discard">破棄</button></div>
+<div id="top" hidden>
+  <div id="bar"><button data-t="viewer" class="on">📅 日程表</button><button data-t="gen">🛠 日程作成</button><button id="cfg" aria-label="公開設定">⚙</button></div>
+  <div id="pubbar" hidden><span>プレビュー中：まだ会員には見えません。</span><button id="pub">公開</button><button id="discard">破棄</button></div>
 </div>
 <iframe id="f-viewer" title="日程表"></iframe>
 <iframe id="f-gen" title="日程作成" hidden></iframe>
 
-<script type="application/json" id="published-data">{}</script>
+<div id="modal" hidden><div class="card">
+  <h2>⚙ 公開設定</h2>
+  <div>「公開」を押すと、日程と選手・設定が GitHub の data.json に保存され、同じURLを開いた全員に反映されます（反映まで1〜2分）。</div>
+  <label for="gh-repo">リポジトリ</label><input id="gh-repo" type="text" value="e8685948/schedule" autocomplete="off">
+  <label for="gh-token">GitHubトークン（この端末にだけ保存）</label><input id="gh-token" type="password" placeholder="github_pat_..." autocomplete="off">
+  <div class="row"><button id="cfg-save">保存</button><button id="cfg-pub">選手・設定を公開</button><button id="cfg-close" class="sub">閉じる</button></div>
+  <div id="cfg-msg"></div>
+  <details><summary>トークンの作り方</summary>
+    GitHub → 右上アイコン → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token。<br>
+    ・Repository access：Only select repositories → schedule のみ<br>
+    ・Permissions → Repository permissions → Contents：Read and write<br>
+    ・Expiration：期限を決める（最長1年）。作成後に表示される文字列をここに貼り付けます。
+  </details>
+</div></div>
+
 <script type="text/plain" id="src-viewer"><!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -685,9 +710,9 @@
     .dots { gap: 8px; }
     .dot { width: 9px; height: 9px; }
     .empty-month { padding: 28px 12px; border-radius: 10px; }
-    .modal-overlay { padding: 12px; align-items: flex-end; }
-    .modal-overlay.active { align-items: flex-end; }
-    .modal-content { max-height: 88dvh; overflow-y: auto; padding: 24px 12px 14px; border-radius: 16px 16px 10px 10px; }
+    .modal-overlay { padding: 12px; align-items: center; }
+    .modal-overlay.active { align-items: center; }
+    .modal-content { max-height: 88dvh; overflow-y: auto; padding: 24px 12px 14px; border-radius: 16px; margin: auto; }
     .me-names { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
     .me-name-btn { min-height: 42px; font-size: 13px; }
   }
@@ -722,7 +747,7 @@
   /* 縦書きの名前：高さ・幅を明示（iOS Safariで縦書きの高さが0になるのを防ぐ） */
   .cal-name, .player-name {
     display: block; flex: none; line-height: 1.25;
-    width: 1.25em; height: calc(var(--n, 3) * (1em + var(--ls, 0px)));
+    width: 1.25em; white-space: nowrap; height: calc(var(--n, 3) * (1.05em + var(--ls, 0px)));
     letter-spacing: var(--ls, 0px) !important;
   }
   .player-name { --ls: 1px; }
@@ -746,7 +771,6 @@
       <div class="month-select">
         <select id="sel-year" aria-label="年"></select>
         <select id="sel-month" aria-label="月"></select>
-        <span class="select-hint">● = 日程あり</span>
       </div>
     </div>
 
@@ -1087,8 +1111,7 @@ function buildSelects() {
   for (let y = MIN_YEAR; y <= MAX_YEAR; y++) yo += `<option value="${y}">${y}年</option>`;
   $('sel-year').innerHTML = yo;
   $('sel-month').innerHTML = Array.from({ length: 12 }, (_, i) => {
-    const has = SCHEDULE[ymKey(curY, i + 1)] ? ' ●' : '';
-    return `<option value="${i + 1}">${i + 1}月${has}</option>`;
+    return `<option value="${i + 1}">${i + 1}月</option>`;
   }).join('');
 }
 function goMonth(y, m) {
@@ -2480,52 +2503,103 @@ render();
 </script>
 <script>
 (function () {
-  const LS = 'ema-preview-schedule';
   const $ = id => document.getElementById(id);
+  const K_PREVIEW = 'ema-preview-schedule', K_GH = 'ema-gh', K_ADMIN = 'ema-admin', K_STATE = 'mahjong-schedule-v6';
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } };
+  const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
   const src = id => $(id).textContent.replace(/<\\\/script/g, '<' + '/script').replace(/<\\!--/g, '<' + '!--');
-  const read = t => { try { return JSON.parse($(t).textContent) || {}; } catch (e) { return {}; } };
-  const getPreview = () => { try { const r = localStorage.getItem(LS); return r ? JSON.parse(r) : null; } catch (e) { return null; } };
   const safeJSON = o => JSON.stringify(o).replace(/</g, '\\u003c');
+  const jparse = s => { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } };
 
-  function layout() { const h = $('top').offsetHeight; ['f-viewer', 'f-gen'].forEach(id => { const f = $(id); f.style.top = h + 'px'; f.style.height = 'calc(100% - ' + h + 'px)'; }); }
+  if (location.hash === '#admin') lsSet(K_ADMIN, '1');
+  const isAdmin = lsGet(K_ADMIN) === '1';
+  let remote = { schedule: {}, genState: null };
+  const preview = () => jparse(lsGet(K_PREVIEW));
+  const effective = () => Object.assign({}, remote.schedule, preview() || {});
+  const getGh = () => Object.assign({ repo: 'e8685948/schedule', branch: 'main', token: '' }, jparse(lsGet(K_GH)) || {});
+
+  function layout() {
+    const h = $('top').hidden ? 0 : $('top').offsetHeight;
+    ['f-viewer', 'f-gen'].forEach(id => { const f = $(id); f.style.top = h + 'px'; f.style.height = 'calc(100% - ' + h + 'px)'; });
+  }
   function loadViewer() {
-    const ex = getPreview() || read('published-data');
+    const ex = effective();
     let html = src('src-viewer');
-    if (Object.keys(ex).length) html = html.replace('<script>', () => '<script>window.__EXTRA_SCHEDULE=' + safeJSON(ex) + ';<\/script>\n<script>');
+    if (Object.keys(ex).length) html = html.replace('<script>', () => '<script>window.__EXTRA_SCHEDULE=' + safeJSON(ex) + ';<' + '/script>\n<script>');
     $('f-viewer').srcdoc = html;
-    $('pubbar').hidden = !getPreview();
+    $('pubbar').hidden = !(isAdmin && preview());
     layout();
   }
   function show(t) {
     $('f-viewer').hidden = t !== 'viewer'; $('f-gen').hidden = t !== 'gen';
-    document.querySelectorAll('#bar button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+    document.querySelectorAll('#bar button[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === t));
     layout();
   }
-  document.querySelectorAll('#bar button').forEach(b => b.addEventListener('click', () => show(b.dataset.t)));
+  async function fetchRemote() {
+    try {
+      const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' });
+      if (r.ok) { const j = await r.json(); remote = { schedule: j.schedule || {}, genState: j.genState || null }; }
+    } catch (e) {}
+  }
 
+  /* ---------- 公開（GitHub API） ---------- */
+  const b64 = s => { let bin = ''; new TextEncoder().encode(s).forEach(c => bin += String.fromCharCode(c)); return btoa(bin); };
+  const setMsg = t => { $('cfg-msg').textContent = t; };
+  function openCfg(msg) { const g = getGh(); $('gh-repo').value = g.repo; $('gh-token').value = g.token; setMsg(msg || ''); $('modal').hidden = false; }
+  async function publish() {
+    const g = getGh();
+    if (!g.token) { openCfg('先にGitHubトークンを入力して「保存」を押してください。'); return; }
+    const body = { schedule: effective(), genState: jparse(lsGet(K_STATE)) || remote.genState, updated: new Date().toISOString() };
+    const api = 'https://api.github.com/repos/' + g.repo + '/contents/data.json';
+    const h = { Authorization: 'Bearer ' + g.token, Accept: 'application/vnd.github+json' };
+    openCfg('公開中…');
+    try {
+      for (let i = 0; i < 2; i++) {
+        let sha;
+        const r = await fetch(api + '?ref=' + g.branch + '&t=' + Date.now(), { headers: h, cache: 'no-store' });
+        if (r.ok) sha = (await r.json()).sha; else if (r.status !== 404) throw { status: r.status };
+        const p = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, h),
+          body: JSON.stringify({ message: '日程を更新', content: b64(JSON.stringify(body, null, 1)), branch: g.branch, sha }) });
+        if (p.ok) {
+          remote = { schedule: body.schedule, genState: body.genState }; lsDel(K_PREVIEW); loadViewer();
+          setMsg('公開しました。会員の画面に反映されるまで1〜2分かかります。'); return;
+        }
+        if (p.status === 409 && i === 0) continue;
+        throw { status: p.status };
+      }
+    } catch (e) {
+      const s = e && e.status;
+      setMsg(s === 401 ? 'トークンが正しくないか、期限切れです。' : (s === 403 || s === 404) ? 'このリポジトリに書き込めません。リポジトリ名と、トークンのContents権限（Read and write）を確認してください。' : '公開に失敗しました（' + (s || '通信エラー') + '）。');
+    }
+  }
+
+  document.querySelectorAll('#bar button[data-t]').forEach(b => b.addEventListener('click', () => show(b.dataset.t)));
+  $('cfg').addEventListener('click', () => openCfg());
+  $('cfg-close').addEventListener('click', () => { $('modal').hidden = true; });
+  $('cfg-save').addEventListener('click', () => {
+    const repo = $('gh-repo').value.trim(), token = $('gh-token').value.trim();
+    setMsg(repo && lsSet(K_GH, JSON.stringify({ repo, branch: 'main', token })) ? '保存しました。' : '保存できませんでした。');
+  });
+  $('cfg-pub').addEventListener('click', publish);
+  $('pub').addEventListener('click', publish);
+  $('discard').addEventListener('click', () => { lsDel(K_PREVIEW); loadViewer(); });
   window.addEventListener('message', e => {
     if (e.source !== $('f-gen').contentWindow || !e.data || e.data.type !== 'ema-schedule') return;
-    try { localStorage.setItem(LS, JSON.stringify(e.data.data)); } catch (err) { alert('この端末では一時保存ができませんでした。'); return; }
+    if (!lsSet(K_PREVIEW, JSON.stringify(e.data.data))) { alert('この端末では一時保存ができませんでした。'); return; }
     loadViewer(); show('viewer');
   });
-  $('discard').addEventListener('click', () => { try { localStorage.removeItem(LS); } catch (e) {} loadViewer(); });
-  $('dl').addEventListener('click', () => {
-    const data = getPreview(); if (!data) return;
-    const clone = document.documentElement.cloneNode(true);
-    clone.querySelectorAll('iframe').forEach(f => { f.removeAttribute('srcdoc'); f.removeAttribute('style'); });
-    clone.querySelector('#f-gen').setAttribute('hidden', '');
-    clone.querySelector('#f-viewer').removeAttribute('hidden');
-    clone.querySelector('#pubbar').setAttribute('hidden', '');
-    clone.querySelectorAll('#bar button').forEach(b => b.classList.toggle('on', b.dataset.t === 'viewer'));
-    clone.querySelector('#published-data').textContent = safeJSON(data);
-    const blob = new Blob(['<!DOCTYPE html>\n' + clone.outerHTML], { type: 'text/html' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'index.html';
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
-  });
-
-  $('f-gen').srcdoc = src('src-gen');
-  loadViewer(); show('viewer');
   window.addEventListener('resize', layout);
+
+  (async function init() {
+    await Promise.race([fetchRemote(), new Promise(r => setTimeout(r, 4000))]);
+    if (isAdmin) {
+      if (!lsGet(K_STATE) && remote.genState) lsSet(K_STATE, JSON.stringify(remote.genState));
+      $('top').hidden = false;
+      $('f-gen').srcdoc = src('src-gen');
+    }
+    loadViewer(); show('viewer');
+  })();
 })();
 </script>
 </body>
