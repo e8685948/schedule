@@ -11,7 +11,10 @@
   #bar { display: flex; gap: 6px; padding: 6px 8px; }
   #bar button { flex: 1; min-height: 38px; border: 1px solid #8b2818; border-radius: 9px; background: transparent; color: #fef9ed; font-size: 13px; font-weight: 700; cursor: pointer; }
   #bar button.on { background: #8b2818; }
-  #bar #cfg { flex: 0 0 46px; }
+  #bar #cfg, #bar #lockout { flex: 0 0 46px; }
+  #lock { position: fixed; left: 8px; bottom: 8px; z-index: 6; width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(26,26,26,.55); color: #fef9ed; font-size: 15px; cursor: pointer; padding: 0; }
+  #lock[hidden], #pw-modal[hidden] { display: none; }
+  #pw-modal { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; padding: 16px; }
   #pubbar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: #8b6914; font-size: 11px; line-height: 1.4; }
   #pubbar span { flex: 1; }
   #pubbar button { min-height: 32px; padding: 0 12px; border: none; border-radius: 7px; background: #fef9ed; color: #5a3a00; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -31,11 +34,20 @@
 </head>
 <body>
 <div id="top" hidden>
-  <div id="bar"><button data-t="viewer" class="on">📅 日程表</button><button data-t="gen">🛠 日程作成</button><button id="cfg" aria-label="公開設定">⚙</button></div>
+  <div id="bar"><button data-t="viewer" class="on">📅 表示</button><button data-t="gen">🛠 日程作成</button><button id="cfg" aria-label="公開設定">⚙</button><button id="lockout" aria-label="編集を終了">🔓</button></div>
   <div id="pubbar" hidden><span>プレビュー中：まだ会員には見えません。</span><button id="pub">公開</button><button id="discard">破棄</button></div>
 </div>
 <iframe id="f-viewer" title="日程表"></iframe>
 <iframe id="f-gen" title="日程作成" hidden></iframe>
+
+<button id="lock" aria-label="編集（パスワード）" hidden>🔒</button>
+<div id="pw-modal" hidden><div class="card">
+  <h2>🔒 編集モード</h2>
+  <div>日程の編集・公開にはパスワードが必要です。</div>
+  <label for="pw-input">パスワード</label><input id="pw-input" type="password" inputmode="numeric" autocomplete="off">
+  <div class="row"><button id="pw-ok">開く</button><button id="pw-cancel" class="sub">閉じる</button></div>
+  <div id="pw-msg" style="margin-top:10px;min-height:1.4em;font-weight:700;color:#8b2818;"></div>
+</div></div>
 
 <div id="modal" hidden><div class="card">
   <h2>⚙ 公開設定</h2>
@@ -2550,7 +2562,7 @@ render();
 <script>
 (function () {
   const $ = id => document.getElementById(id);
-  const K_PREVIEW = 'ema-preview-schedule', K_GH = 'ema-gh', K_ADMIN = 'ema-admin', K_STATE = 'mahjong-schedule-v6';
+  const K_PREVIEW = 'ema-preview-schedule', K_GH = 'ema-gh', K_ADMIN = 'ema-admin2', PW = '1001', K_STATE = 'mahjong-schedule-v6';
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } };
   const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
@@ -2558,8 +2570,7 @@ render();
   const safeJSON = o => JSON.stringify(o).replace(/</g, '\\u003c');
   const jparse = s => { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } };
 
-  if (location.hash === '#admin') lsSet(K_ADMIN, '1');
-  const isAdmin = lsGet(K_ADMIN) === '1';
+  let isAdmin = lsGet(K_ADMIN) === '1';
   let remote = { schedule: {}, genState: null };
   const preview = () => jparse(lsGet(K_PREVIEW));
   const effective = () => Object.assign({}, remote.schedule, preview() || {});
@@ -2620,6 +2631,24 @@ render();
     }
   }
 
+  function applyAdmin() {
+    $('lock').hidden = isAdmin; $('top').hidden = !isAdmin;
+    if (isAdmin) {
+      if (!lsGet(K_STATE) && remote.genState) lsSet(K_STATE, JSON.stringify(remote.genState));
+      if (!$('f-gen').srcdoc) $('f-gen').srcdoc = src('src-gen');
+    }
+    loadViewer();
+  }
+  function openPw() { $('pw-input').value = ''; $('pw-msg').textContent = ''; $('pw-modal').hidden = false; setTimeout(() => $('pw-input').focus(), 50); }
+  function tryPw() {
+    if ($('pw-input').value.trim() !== PW) { $('pw-msg').textContent = 'パスワードが違います。'; return; }
+    lsSet(K_ADMIN, '1'); isAdmin = true; $('pw-modal').hidden = true; applyAdmin(); show('viewer');
+  }
+  $('lock').addEventListener('click', openPw);
+  $('pw-ok').addEventListener('click', tryPw);
+  $('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') tryPw(); });
+  $('pw-cancel').addEventListener('click', () => { $('pw-modal').hidden = true; });
+  $('lockout').addEventListener('click', () => { lsDel(K_ADMIN); isAdmin = false; $('modal').hidden = true; applyAdmin(); show('viewer'); });
   document.querySelectorAll('#bar button[data-t]').forEach(b => b.addEventListener('click', () => show(b.dataset.t)));
   $('cfg').addEventListener('click', () => openCfg());
   $('cfg-close').addEventListener('click', () => { $('modal').hidden = true; });
@@ -2639,12 +2668,7 @@ render();
 
   (async function init() {
     await Promise.race([fetchRemote(), new Promise(r => setTimeout(r, 4000))]);
-    if (isAdmin) {
-      if (!lsGet(K_STATE) && remote.genState) lsSet(K_STATE, JSON.stringify(remote.genState));
-      $('top').hidden = false;
-      $('f-gen').srcdoc = src('src-gen');
-    }
-    loadViewer(); show('viewer');
+    applyAdmin(); show('viewer');
   })();
 })();
 </script>
