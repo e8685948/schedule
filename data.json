@@ -1,5 +1,47 @@
 {
  "schedule": {},
- "genState": null,
- "updated": "2026-10-27T02:18:25.362Z"
+ "genState": {
+  "seasonStart": "2027-01-01",
+  "seasonEnd": "2027-12-31",
+  "exclusions": [],
+  "useHolidays": true,
+  "hanchanPerSession": "3",
+  "leagues": [
+   {
+    "name": "Aリーグ",
+    "target": 30
+   },
+   {
+    "name": "B1リーグ",
+    "target": 30
+   },
+   {
+    "name": "B2リーグ",
+    "target": 30
+   }
+  ],
+  "players": [
+   {
+    "name": "こうへー",
+    "leagueIndex": -1
+   },
+   {
+    "name": "北川翔太",
+    "leagueIndex": -1
+   },
+   {
+    "name": "shota",
+    "leagueIndex": -1
+   },
+   {
+    "name": "倉岡研一",
+    "leagueIndex": -1
+   },
+   {
+    "name": "KAZU",
+    "leagueIndex": -1
+   }
+  ]
+ },
+ "updated": "2026-10-27T02:25:06.889Z"
 }
