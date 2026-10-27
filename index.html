@@ -20,6 +20,11 @@
   .ro-top select { flex: 1; }
   .ro-row { display: flex; gap: 6px; margin-bottom: 6px; }
   .ro-row .ro-name { flex: 2; min-width: 0; } .ro-row .ro-lg { flex: 1; min-width: 0; }
+  .ro-chk { flex: none; width: 22px; height: 22px; align-self: center; padding: 0 !important; }
+  .ro-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .ro-tab { border: 1px solid #b9a77a; background: #fff; color: #3a2818; border-radius: 16px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
+  .ro-tab.on { background: #8b2818; color: #fef9ed; border-color: #8b2818; }
+  .ro-bulkbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; background: #e6dcc0; padding: 8px; border-radius: 8px; margin: 6px 0; }
   .ro-btn { min-height: 38px; padding: 0 12px; border: none; border-radius: 9px; background: #8b2818; color: #fef9ed; font-weight: 700; font-size: 13px; cursor: pointer; }
   .ro-btn.sub, .ro-x { background: #e6dcc0; color: #3a2818; }
   .ro-x { flex: 0 0 38px; border: none; border-radius: 6px; cursor: pointer; }
@@ -1535,12 +1540,21 @@ function showMyDay(a) {
     if (idx >= 0) goSlide(idx);
   });
 }
+function pickerPlayers() {   // 表示中の年度の選手登録を優先。未登録の年度は日程に出ている選手
+  const ros = ((window.__ROSTER || {})[String(curY)] || []).filter(p => p.name);
+  if (!ros.length) return { lg: allPlayers(), year: '' };
+  const lg = {}; ros.forEach(p => { lg[p.name] = lg[p.name] || (p.league || ''); });
+  return { lg, year: String(curY) };
+}
 function openMePicker() {
-  const lg = allPlayers();
+  const { lg, year } = pickerPlayers();
   const group = L => Object.keys(lg).filter(p => lg[p] === L).sort((a, b) => a.localeCompare(b, 'ja'))
     .map(p => `<button class="me-name-btn${p === me ? ' current' : ''}" data-name-pick="${esc(p)}">${esc(p)}</button>`).join('');
-  $('me-list').innerHTML = [...new Set(Object.values(lg))].map(L =>
-    `<div class="me-group"><div class="me-group-title ${L.toLowerCase()}">${L}リーグ</div><div class="me-names">${group(L)}</div></div>`).join('');
+  const cfg = year ? (((window.__LEAGUES || {})[year]) || []).map(l => l.name) : [];
+  const used = [...new Set(Object.values(lg))];
+  const order = [...cfg.filter(n => used.includes(n)), ...used.filter(n => !cfg.includes(n)).sort()];
+  $('me-list').innerHTML = (year ? `<div class="me-note" style="margin-bottom:6px">${year}年度の選手</div>` : '') + order.map(L =>
+    `<div class="me-group"><div class="me-group-title ${String(L).toLowerCase().replace(/[^a-z0-9]/g, '')}">${L ? esc(L).replace(/リーグ$/, '') + 'リーグ' : '未設定'}</div><div class="me-names">${group(L)}</div></div>`).join('');
   $('me-clear').style.display = me ? '' : 'none';
   $('me-modal').classList.add('active');
   document.body.style.overflow = 'hidden';
@@ -2931,7 +2945,7 @@ render();
 
   let isAdmin = lsGet(K_ADMIN) === '1';
   let remote = { schedule: {}, genState: null, roster: {}, leagues: {} };
-  let startMonth = null, rosterDirty = false, rosterYear = String(new Date().getFullYear());
+  let startMonth = null, rosterDirty = false, rosterFilter = '', rosterYear = String(new Date().getFullYear());
   const rosterDraft = () => jparse(lsGet(K_ROSTER)) || {};
   const lgDraft = () => jparse(lsGet(K_LG)) || {};
   const effLeagues = () => Object.assign({}, remote.leagues || {}, lgDraft());
@@ -2951,7 +2965,7 @@ render();
     let html = src('src-viewer');
     let pre = 'window.__ADMIN=' + (isAdmin ? 'true' : 'false') + ';';
     if (Object.keys(ex).length) pre += 'window.__EXTRA_SCHEDULE=' + safeJSON(ex) + ';';
-    pre += 'window.__ROSTER=' + safeJSON(effRoster()) + ';';
+    pre += 'window.__ROSTER=' + safeJSON(effRoster()) + ';window.__LEAGUES=' + safeJSON(effLeagues()) + ';';
     if (startMonth) pre += 'window.__START=' + safeJSON(startMonth) + ';';
     html = html.replace('<script>', () => '<script>' + pre + '<' + '/script>\n<script>');
     $('f-viewer').srcdoc = html;
@@ -3038,7 +3052,7 @@ render();
   const curLeagues = () => {
     const cfg = effLeagues()[rosterYear];
     if (cfg) return cfg.map(l => ({ name: l.name, target: l.target }));
-    const codes = [...new Set(curList().map(p => p.league).filter(Boolean))];   // 未設定の年度は、選手のリーグから仮表示
+    const codes = [...new Set(curList().map(p => p.league).filter(Boolean))].sort();   // 未設定の年度は、選手のリーグから仮表示
     return (codes.length ? codes : ['A1', 'A2']).map(n => ({ name: n, target: 30 }));
   };
   function saveLeagues(list) { const d = lgDraft(); d[rosterYear] = list; lsSet(K_LG, JSON.stringify(d)); rosterDirty = true; updatePub(); }
@@ -3049,24 +3063,42 @@ render();
     const years = [...new Set([...Object.keys(ros), rosterYear])].sort();
     const lgList = curLeagues();
     const lgs = [...new Set([...lgList.map(l => l.name).filter(Boolean), ...list.map(p => p.league).filter(Boolean)])];
+    const lgOpts = cur => '<option value="">（未設定）</option>' + lgs.map(n => `<option value="${esc(n)}"${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join('');
+    const cnt = n => list.filter(p => (p.league || '') === n).length;
+    const tabs = `<div class="ro-tabs"><button class="ro-tab${rosterFilter === '' ? ' on' : ''}" data-f="">全員 ${list.length}</button>${lgs.map(n => `<button class="ro-tab${rosterFilter === n ? ' on' : ''}" data-f="${esc(n)}">${esc(n)} ${cnt(n)}</button>`).join('')}${cnt('') ? `<button class="ro-tab${rosterFilter === '__none' ? ' on' : ''}" data-f="__none">未設定 ${cnt('')}</button>` : ''}</div>`;
     $('roster-view').innerHTML = `<h2>👥 選手登録</h2><div>年度ごとに選手とリーグを登録します。日程の編集（座席の選択）と日程作成で使います。</div>
-      <div class="ro-top"><select id="ro-year">${years.map(y => `<option value="${y}"${y === rosterYear ? ' selected' : ''}>${y}年度（${(ros[y] || []).length}名）</option>`).join('')}</select><button class="ro-btn sub" id="ro-newyear">＋ 年度を追加</button></div>
+      <div class="ro-top"><select id="ro-year">${years.map(y => `<option value="${y}"${y === rosterYear ? ' selected' : ''}>${y}年度（${(ros[y] || []).length}名）</option>`).join('')}</select></div>
+      <div class="ro-top"><input id="ro-newyear-in" type="number" inputmode="numeric" min="2000" max="2100" style="width:100px" value="${+rosterYear + 1}"><button class="ro-btn sub" id="ro-newyear">＋ 年度を追加</button></div>
       <h3 style="margin:14px 0 4px;font-size:14px">リーグ設定（${rosterYear}年度）</h3>
       <div style="font-size:12px;color:#5a4a3a;margin-bottom:6px">リーグ名（例：A1）と、1人あたりの目標半荘数。日程作成で使います。</div>
       ${lgList.map((l, i) => `<div class="ro-row lg-row"><input class="lg-name" placeholder="リーグ名 例:A1" value="${esc(l.name || '')}"><input class="lg-target" type="number" min="1" inputmode="numeric" style="flex:1;min-width:0" value="${esc(l.target || 30)}"><button class="ro-x lg-x" data-i="${i}" aria-label="削除">✕</button></div>`).join('') || '<div style="font-size:12px">まだリーグがありません。</div>'}
       <div class="ro-actions"><button class="ro-btn" id="lg-add">＋ リーグを追加</button></div>
       <h3 style="margin:14px 0 4px;font-size:14px">選手</h3>
-      <datalist id="ro-lgs">${lgs.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
-      ${list.map((p, i) => `<div class="ro-row"><input class="ro-name" placeholder="選手名" value="${esc(p.name)}"><input class="ro-lg" list="ro-lgs" placeholder="リーグ" value="${esc(p.league || '')}"><button class="ro-x" data-i="${i}" aria-label="削除">✕</button></div>`).join('') || '<div>まだ登録がありません。</div>'}
+      ${tabs}
+      <div class="ro-bulkbar"><button class="ro-btn sub" id="ro-all">表示中を全選択／解除</button><span>選択した選手を</span><select id="ro-bulk-lg">${lgOpts('')}</select><button class="ro-btn" id="ro-move">に移す</button></div>
+      ${list.map((p, i) => `<div class="ro-row" data-lg="${esc(p.league || '')}" style="${rosterFilter !== '' && (p.league || '') !== (rosterFilter === '__none' ? '' : rosterFilter) ? 'display:none' : ''}"><input type="checkbox" class="ro-chk"><input class="ro-name" placeholder="選手名" value="${esc(p.name)}"><select class="ro-lg">${lgOpts(p.league || '')}</select><button class="ro-x" data-i="${i}" aria-label="削除">✕</button></div>`).join('') || '<div>まだ登録がありません。</div>'}
       <div class="ro-actions"><button class="ro-btn" id="ro-add">＋ 選手を追加</button><button class="ro-btn sub" id="ro-import">日程データから取り込む</button></div>
       <details><summary>一括貼り付け（1行に「名前,リーグ」）</summary><textarea id="ro-bulk" rows="6" style="width:100%;margin-top:6px" placeholder="山田太郎,A1&#10;鈴木花子,A2"></textarea><button class="ro-btn sub" id="ro-bulk-go" style="margin-top:6px">取り込む</button></details>
       <div style="margin-top:12px;font-size:12px;color:#5a4a3a">変更は自動で保存されます。会員に反映するには、上の「公開」を押してください。</div>`;
   }
-  $('roster-view').addEventListener('input', e => { if (e.target.closest('.lg-row')) saveLeagues(readLgs()); else if (e.target.closest('.ro-row')) saveList(readRows()); });
-  $('roster-view').addEventListener('change', e => { if (e.target.id === 'ro-year') { rosterYear = e.target.value; drawRoster(); } });
+  $('roster-view').addEventListener('input', e => { if (e.target.closest('.lg-row')) saveLeagues(readLgs()); else if (e.target.closest('.ro-row') && !e.target.classList.contains('ro-chk')) saveList(readRows()); });
+  $('roster-view').addEventListener('change', e => {
+    if (e.target.classList.contains('lg-name')) drawRoster();                 // リーグ名を変えたら選択肢を更新
+    else if (e.target.classList.contains('ro-lg')) drawRoster();              // 所属を変えたら人数・絞り込みを更新
+  });
+  $('roster-view').addEventListener('change', e => { if (e.target.id === 'ro-year') { rosterYear = e.target.value; rosterFilter = ''; drawRoster(); } });
   $('roster-view').addEventListener('click', e => {
     const t = e.target;
-    if (t.id === 'ro-newyear') { const y = (prompt('追加する年度（西暦）', String(+rosterYear + 1)) || '').trim(); if (/^\d{4}$/.test(y)) { rosterYear = y; if (!(effRoster()[y])) saveList([]); drawRoster(); } }
+    if (t.classList.contains('ro-tab')) { rosterFilter = t.dataset.f; drawRoster(); return; }
+    if (t.id === 'ro-all') { const vis = [...document.querySelectorAll('#roster-view .ro-row:not(.lg-row)')].filter(r => r.style.display !== 'none').map(r => r.querySelector('.ro-chk')); const on = vis.some(c => !c.checked); vis.forEach(c => { c.checked = on; }); return; }
+    if (t.id === 'ro-move') {
+      const rows = [...document.querySelectorAll('#roster-view .ro-row:not(.lg-row)')], to = $('ro-bulk-lg').value;
+      const picked = rows.filter(r => r.querySelector('.ro-chk').checked);
+      if (!picked.length) { alert('移す選手にチェックを入れてください。'); return; }
+      picked.forEach(r => { r.querySelector('.ro-lg').value = to; });
+      saveList(readRows()); drawRoster(); return;
+    }
+    if (t.id === 'ro-newyear') { const y = ($('ro-newyear-in').value || '').trim(); if (/^\d{4}$/.test(y)) { rosterYear = y; rosterFilter = ''; if (!(effRoster()[y])) saveList([]); drawRoster(); } else alert('西暦4桁で入力してください（例：2028）。'); }
     else if (t.id === 'lg-add') { const l = readLgs(); l.push({ name: '', target: l.length ? l[l.length - 1].target : 30 }); saveLeagues(l); drawRoster(); const n = document.querySelectorAll('#roster-view .lg-name'); if (n.length) n[n.length - 1].focus(); }
     else if (t.classList.contains('lg-x')) { const l = readLgs(); l.splice(+t.dataset.i, 1); saveLeagues(l); drawRoster(); }
     else if (t.id === 'ro-add') { const l = readRows(); l.push({ name: '', league: l.length ? l[l.length - 1].league : 'A1' }); saveList(l); drawRoster(); const n = document.querySelectorAll('#roster-view .ro-name'); if (n.length) n[n.length - 1].focus(); }
