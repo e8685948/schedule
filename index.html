@@ -1920,10 +1920,13 @@ render();
 
   <section class="panel">
     <h2>シーズン設定</h2>
+    <label style="margin-top:0;">① 年度<span class="sub">「👥 選手登録」で登録した年度から選びます。選手とリーグ設定はこの年度のものを使います。</span></label>
+    <select id="gen-year" style="max-width:220px;"></select>
+    <label>② 試合期間<span class="sub">年度を選ぶと1/1〜12/31が入ります。必要に応じて日付を変更してください。</span></label>
     <p class="hint">対象期間の土日をすべて候補にし、日本の祝日（自動計算）と下の除外期間を差し引きます。期間が年をまたいでも計算できます。</p>
     <div class="grid2">
-      <div><label>開始日</label><input type="date" id="season-start"></div>
-      <div><label>終了日</label><input type="date" id="season-end"></div>
+      <div><label>開始日</label><input type="hidden" id="season-start"><input type="text" class="md" data-for="season-start" inputmode="numeric" maxlength="4" placeholder="月日 例:0101"></div>
+      <div><label>終了日</label><input type="hidden" id="season-end"><input type="text" class="md" data-for="season-end" inputmode="numeric" maxlength="4" placeholder="月日 例:1231"></div>
     </div>
     <label>大型連休など追加の除外期間
       <span class="sub">年は上の開始日から自動判定します。月日を4桁の数字で入力（例：0429）</span>
@@ -1954,14 +1957,20 @@ render();
     <p class="hint" style="margin-top:14px;">1日1卓・前半1セッション（4名）＋後半1セッション（別の4名）で固定しています。同じ選手が2日連続で対局しないように、また同卓の組み合わせと座席（東南西北）ができるだけ均等になるように自動調整します。目標半荘数はリーグごとに下で設定します。</p>
   </section>
 
-  <section class="panel">
+  <section class="panel" id="roster-summary-panel">
+    <h2>リーグ・選手</h2>
+    <p class="hint">リーグ設定と選手登録は「👥 選手登録」で行います。開始日の年度の内容が自動で使われます。</p>
+    <div id="roster-summary" class="hint"></div>
+  </section>
+
+  <section class="panel" style="display:none">
     <h2>リーグ設定</h2>
     <p class="hint">リーグの追加・削除、名前と目標半荘数の変更ができます。人数は下の選手登録から自動集計されます。</p>
     <div id="league-list"></div>
     <button class="add-league-btn" id="add-league-btn">＋ リーグを追加</button>
   </section>
 
-  <section class="panel">
+  <section class="panel" style="display:none">
     <h2>選手登録</h2>
     <p class="hint">選手名を入力してリーグを選び「追加」を押すと、下の一覧（折りたたみ）に収納されます。同じ枠に続けて次の選手を入力できます。一覧を開けば、名前の修正やリーグの付け替え（プルダウンを選び直すだけ）もできます。</p>
     <div class="entry-row" id="roster-import-row" style="grid-template-columns:1fr auto;">
@@ -2484,7 +2493,26 @@ render();
   // ---------- generation ----------
   let lastResult = null;
 
+  // 「👥 選手登録」の年度データ（リーグ設定＋選手）を読み込む
+  function syncFromRoster() {
+    const year = (document.getElementById('gen-year').value || '');
+    const list = ((window.__ROSTER || {})[year] || []).filter(p => p.name);
+    const cfg = (window.__LEAGUES || {})[year] || [];
+    const label = c => /リーグ$/.test(c) ? c : c + 'リーグ';
+    leagues = []; players = [];
+    cfg.filter(c => c.name).forEach(c => leagues.push(newLeague(label(c.name.trim()), parseInt(c.target, 10) || 30)));
+    list.forEach(p => {
+      const code = (p.league || '').trim() || 'A1';
+      let lg = leagues.find(l => l.name === code || l.name === label(code));
+      if (!lg) { lg = newLeague(label(code), 30); leagues.push(lg); }
+      players.push(newPlayer(p.name, lg.uid));
+    });
+    const box = document.getElementById('roster-summary');
+    if (box) box.innerHTML = list.length ? `<b>${year}年度</b>：` + leagues.map(l => `${escapeHtml(l.name)} ${players.filter(p => p.leagueUid === l.uid).length}名（目標${l.target}半荘）`).join('　／　') : `<span style="color:var(--red-deep)">${year}年度の選手が登録されていません。「👥 選手登録」で登録してください。</span>`;
+  }
+
   function generate() {
+    syncFromRoster();
     const seasonStart = document.getElementById('season-start').value;
     const seasonEnd = document.getElementById('season-end').value;
     const exclRanges = exclusionsToRanges(parseISO(seasonStart).getFullYear());
@@ -2772,6 +2800,7 @@ render();
   function persistState() {
     try {
       const data = {
+        genYear: document.getElementById('gen-year').value,
         seasonStart: document.getElementById('season-start').value,
         seasonEnd: document.getElementById('season-end').value,
         exclusions: exclusions.map(x => ({ startRaw: x.startRaw, endRaw: x.endRaw })),
@@ -2813,6 +2842,36 @@ render();
   renderExclusions();
   updateRegistrySummary();
   document.getElementById('generate-btn').addEventListener('click', generate);
+  (function () {   // 年度の選択 → 試合期間の初期値
+    const ySel = document.getElementById('gen-year'), cur = new Date().getFullYear();
+    const years = new Set([...Object.keys(window.__ROSTER || {}), ...Object.keys(window.__LEAGUES || {}), String(cur), String(cur + 1)]);
+    let saved = ''; try { saved = (JSON.parse(localStorage.getItem(storageKey())) || {}).genYear || ''; } catch (e) {}
+    const sy = (document.getElementById('season-start').value || '').slice(0, 4);
+    const init = saved || sy || String(cur + 1);
+    years.add(init);
+    ySel.innerHTML = [...years].sort().map(y => `<option value="${y}"${y === init ? ' selected' : ''}>${y}年度</option>`).join('');
+    // 年は年度で固定。月・日だけ変更できる
+    const pad2 = n => String(n).padStart(2, '0');
+    const boxes = [...document.querySelectorAll('.md')];
+    const fromHidden = () => boxes.forEach(b => {
+      const v = document.getElementById(b.dataset.for).value || '';
+      b.value = /^\d{4}-\d{2}-\d{2}$/.test(v) ? v.slice(5, 7) + v.slice(8, 10) : (b.dataset.for === 'season-start' ? '0101' : '1231');
+    });
+    const toHidden = () => boxes.forEach(b => {
+      const y = +ySel.value, hid = document.getElementById(b.dataset.for), raw = b.value.replace(/\D/g, '');
+      let m = +raw.slice(0, 2), d = +raw.slice(2, 4);
+      if (raw.length !== 4 || m < 1 || m > 12 || d < 1) {   // 不正な入力は直前の値に戻す
+        const v = hid.value; m = +v.slice(5, 7) || 1; d = +v.slice(8, 10) || 1;
+      }
+      d = Math.min(d, new Date(y, m, 0).getDate());
+      hid.value = `${y}-${pad2(m)}-${pad2(d)}`;
+      b.value = pad2(m) + pad2(d);
+    });
+    boxes.forEach(b => { b.addEventListener('input', () => { b.value = b.value.replace(/\D/g, '').slice(0, 4); }); b.addEventListener('change', () => { toHidden(); syncFromRoster(); persistState(); }); });
+    ySel.addEventListener('change', () => { toHidden(); syncFromRoster(); persistState(); });
+    fromHidden(); toHidden();
+    syncFromRoster();
+  })();
   (function () {   // 選手は「👥 選手登録」（年度ごとの名簿）から読み込む
     document.getElementById('new-player-name').parentElement.style.display = 'none';
     const bulk = document.querySelector('details.bulk-import'); if (bulk) bulk.style.display = 'none';
@@ -2862,7 +2921,7 @@ render();
 <script>
 (function () {
   const $ = id => document.getElementById(id);
-  const K_PREVIEW = 'ema-preview-schedule', K_GH = 'ema-gh', K_ADMIN = 'ema-admin2', K_ROSTER = 'ema-roster-draft', PW = '1001', K_STATE = 'mahjong-schedule-v6';
+  const K_PREVIEW = 'ema-preview-schedule', K_GH = 'ema-gh', K_ADMIN = 'ema-admin2', K_ROSTER = 'ema-roster-draft', K_LG = 'ema-leagues-draft', PW = '1001', K_STATE = 'mahjong-schedule-v6';
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } };
   const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
@@ -2871,12 +2930,14 @@ render();
   const jparse = s => { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } };
 
   let isAdmin = lsGet(K_ADMIN) === '1';
-  let remote = { schedule: {}, genState: null, roster: {} };
+  let remote = { schedule: {}, genState: null, roster: {}, leagues: {} };
   let startMonth = null, rosterDirty = false, rosterYear = String(new Date().getFullYear());
   const rosterDraft = () => jparse(lsGet(K_ROSTER)) || {};
+  const lgDraft = () => jparse(lsGet(K_LG)) || {};
+  const effLeagues = () => Object.assign({}, remote.leagues || {}, lgDraft());
   const effRoster = () => Object.assign({}, remote.roster || {}, rosterDraft());
-  const genHtml = () => src('src-gen').replace('<script>', () => '<script>window.__ROSTER=' + safeJSON(effRoster()) + ';<' + '/script>\n<script>');
-  const updatePub = () => { $('pubbar').hidden = !(isAdmin && (preview() || Object.keys(rosterDraft()).length)); layout(); };
+  const genHtml = () => src('src-gen').replace('<script>', () => '<script>window.__ROSTER=' + safeJSON(effRoster()) + ';window.__LEAGUES=' + safeJSON(effLeagues()) + ';<' + '/script>\n<script>');
+  const updatePub = () => { $('pubbar').hidden = !(isAdmin && (preview() || Object.keys(rosterDraft()).length || Object.keys(lgDraft()).length)); layout(); };
   const preview = () => jparse(lsGet(K_PREVIEW));
   const effective = () => Object.assign({}, remote.schedule, preview() || {});
   const getGh = () => Object.assign({ repo: 'e8685948/schedule', branch: 'main', token: '' }, jparse(lsGet(K_GH)) || {});
@@ -2906,7 +2967,7 @@ render();
   async function fetchRemote() {
     try {
       const r = await fetch('data.json?t=' + Date.now(), { cache: 'no-store' });
-      if (r.ok) { const j = await r.json(); remote = { schedule: j.schedule || {}, genState: j.genState || null, roster: j.roster || {} }; }
+      if (r.ok) { const j = await r.json(); remote = { schedule: j.schedule || {}, genState: j.genState || null, roster: j.roster || {}, leagues: j.leagues || {} }; }
     } catch (e) {}
   }
 
@@ -2917,7 +2978,7 @@ render();
   async function publish() {
     const g = getGh();
     if (!g.token) { openCfg('先にGitHubトークンを入力して「保存」を押してください。'); return; }
-    const body = { schedule: effective(), roster: effRoster(), genState: jparse(lsGet(K_STATE)) || remote.genState, updated: new Date().toISOString() };
+    const body = { schedule: effective(), roster: effRoster(), leagues: effLeagues(), genState: jparse(lsGet(K_STATE)) || remote.genState, updated: new Date().toISOString() };
     const api = 'https://api.github.com/repos/' + g.repo + '/contents/data.json';
     const h = { Authorization: 'Bearer ' + g.token, Accept: 'application/vnd.github+json' };
     openCfg('公開中…');
@@ -2929,7 +2990,7 @@ render();
         const p = await fetch(api, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, h),
           body: JSON.stringify({ message: '日程を更新', content: b64(JSON.stringify(body, null, 1)), branch: g.branch, sha }) });
         if (p.ok) {
-          remote = { schedule: body.schedule, genState: body.genState, roster: body.roster }; lsDel(K_PREVIEW); lsDel(K_ROSTER); loadViewer();
+          remote = { schedule: body.schedule, genState: body.genState, roster: body.roster, leagues: body.leagues }; lsDel(K_PREVIEW); lsDel(K_ROSTER); lsDel(K_LG); loadViewer();
           setMsg('公開しました。会員の画面に反映されるまで1〜2分かかります。'); return;
         }
         if (p.status === 409 && i === 0) continue;
@@ -2937,7 +2998,7 @@ render();
       }
     } catch (e) {
       const s = e && e.status;
-      setMsg(s === 401 ? 'トークンが正しくないか、期限切れです。' : (s === 403 || s === 404) ? 'このリポジトリに書き込めません。リポジトリ名と、トークンのContents権限（Read and write）を確認してください。' : '公開に失敗しました（' + (s || '通信エラー') + '）。');
+      setMsg(s === 401 ? 'トークンが正しくありません（コピーが途中で切れた・文字が混ざった可能性が高いです。⚙でトークンを貼り直して保存してください。それでもだめなら期限切れです）。' : (s === 403 || s === 404) ? 'このリポジトリに書き込めません。リポジトリ名と、トークンのContents権限（Read and write）を確認してください。' : '公開に失敗しました（' + (s || '通信エラー') + '）。');
     }
   }
 
@@ -2963,37 +3024,53 @@ render();
   $('cfg').addEventListener('click', () => openCfg());
   $('cfg-close').addEventListener('click', () => { $('modal').hidden = true; });
   $('cfg-save').addEventListener('click', () => {
-    const repo = $('gh-repo').value.trim(), token = $('gh-token').value.trim();
+    const repo = $('gh-repo').value.trim(), token = $('gh-token').value.replace(/[^\x21-\x7e]/g, '');   // 改行・空白・全角などの混入を除去
     setMsg(repo && lsSet(K_GH, JSON.stringify({ repo, branch: 'main', token })) ? '保存しました。' : '保存できませんでした。');
   });
   $('cfg-pub').addEventListener('click', publish);
   $('pub').addEventListener('click', publish);
-  $('discard').addEventListener('click', () => { lsDel(K_PREVIEW); lsDel(K_ROSTER); $('f-gen').srcdoc = genHtml(); loadViewer(); });
+  $('discard').addEventListener('click', () => { lsDel(K_PREVIEW); lsDel(K_ROSTER); lsDel(K_LG); $('f-gen').srcdoc = genHtml(); loadViewer(); });
 
   /* ---------- 選手登録（年度ごと） ---------- */
   const esc = x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const curList = () => (effRoster()[rosterYear] || []).map(p => ({ name: p.name, league: p.league }));
   function saveList(list) { const d = rosterDraft(); d[rosterYear] = list; lsSet(K_ROSTER, JSON.stringify(d)); rosterDirty = true; updatePub(); }
-  function readRows() { return [...document.querySelectorAll('#roster-view .ro-row')].map(r => ({ name: r.querySelector('.ro-name').value.trim(), league: r.querySelector('.ro-lg').value.trim() })); }
+  const curLeagues = () => {
+    const cfg = effLeagues()[rosterYear];
+    if (cfg) return cfg.map(l => ({ name: l.name, target: l.target }));
+    const codes = [...new Set(curList().map(p => p.league).filter(Boolean))];   // 未設定の年度は、選手のリーグから仮表示
+    return (codes.length ? codes : ['A1', 'A2']).map(n => ({ name: n, target: 30 }));
+  };
+  function saveLeagues(list) { const d = lgDraft(); d[rosterYear] = list; lsSet(K_LG, JSON.stringify(d)); rosterDirty = true; updatePub(); }
+  function readLgs() { return [...document.querySelectorAll('#roster-view .lg-row')].map(r => ({ name: r.querySelector('.lg-name').value.trim(), target: parseInt(r.querySelector('.lg-target').value, 10) || 30 })); }
+  function readRows() { return [...document.querySelectorAll('#roster-view .ro-row:not(.lg-row)')].map(r => ({ name: r.querySelector('.ro-name').value.trim(), league: r.querySelector('.ro-lg').value.trim() })); }
   function drawRoster() {
     const ros = effRoster(), list = curList();
     const years = [...new Set([...Object.keys(ros), rosterYear])].sort();
-    const lgs = [...new Set(['A1', 'A2', ...list.map(p => p.league).filter(Boolean)])];
+    const lgList = curLeagues();
+    const lgs = [...new Set([...lgList.map(l => l.name).filter(Boolean), ...list.map(p => p.league).filter(Boolean)])];
     $('roster-view').innerHTML = `<h2>👥 選手登録</h2><div>年度ごとに選手とリーグを登録します。日程の編集（座席の選択）と日程作成で使います。</div>
       <div class="ro-top"><select id="ro-year">${years.map(y => `<option value="${y}"${y === rosterYear ? ' selected' : ''}>${y}年度（${(ros[y] || []).length}名）</option>`).join('')}</select><button class="ro-btn sub" id="ro-newyear">＋ 年度を追加</button></div>
+      <h3 style="margin:14px 0 4px;font-size:14px">リーグ設定（${rosterYear}年度）</h3>
+      <div style="font-size:12px;color:#5a4a3a;margin-bottom:6px">リーグ名（例：A1）と、1人あたりの目標半荘数。日程作成で使います。</div>
+      ${lgList.map((l, i) => `<div class="ro-row lg-row"><input class="lg-name" placeholder="リーグ名 例:A1" value="${esc(l.name || '')}"><input class="lg-target" type="number" min="1" inputmode="numeric" style="flex:1;min-width:0" value="${esc(l.target || 30)}"><button class="ro-x lg-x" data-i="${i}" aria-label="削除">✕</button></div>`).join('') || '<div style="font-size:12px">まだリーグがありません。</div>'}
+      <div class="ro-actions"><button class="ro-btn" id="lg-add">＋ リーグを追加</button></div>
+      <h3 style="margin:14px 0 4px;font-size:14px">選手</h3>
       <datalist id="ro-lgs">${lgs.map(l => `<option value="${esc(l)}">`).join('')}</datalist>
       ${list.map((p, i) => `<div class="ro-row"><input class="ro-name" placeholder="選手名" value="${esc(p.name)}"><input class="ro-lg" list="ro-lgs" placeholder="リーグ" value="${esc(p.league || '')}"><button class="ro-x" data-i="${i}" aria-label="削除">✕</button></div>`).join('') || '<div>まだ登録がありません。</div>'}
       <div class="ro-actions"><button class="ro-btn" id="ro-add">＋ 選手を追加</button><button class="ro-btn sub" id="ro-import">日程データから取り込む</button></div>
       <details><summary>一括貼り付け（1行に「名前,リーグ」）</summary><textarea id="ro-bulk" rows="6" style="width:100%;margin-top:6px" placeholder="山田太郎,A1&#10;鈴木花子,A2"></textarea><button class="ro-btn sub" id="ro-bulk-go" style="margin-top:6px">取り込む</button></details>
       <div style="margin-top:12px;font-size:12px;color:#5a4a3a">変更は自動で保存されます。会員に反映するには、上の「公開」を押してください。</div>`;
   }
-  $('roster-view').addEventListener('input', e => { if (e.target.closest('.ro-row')) saveList(readRows()); });
+  $('roster-view').addEventListener('input', e => { if (e.target.closest('.lg-row')) saveLeagues(readLgs()); else if (e.target.closest('.ro-row')) saveList(readRows()); });
   $('roster-view').addEventListener('change', e => { if (e.target.id === 'ro-year') { rosterYear = e.target.value; drawRoster(); } });
   $('roster-view').addEventListener('click', e => {
     const t = e.target;
     if (t.id === 'ro-newyear') { const y = (prompt('追加する年度（西暦）', String(+rosterYear + 1)) || '').trim(); if (/^\d{4}$/.test(y)) { rosterYear = y; if (!(effRoster()[y])) saveList([]); drawRoster(); } }
+    else if (t.id === 'lg-add') { const l = readLgs(); l.push({ name: '', target: l.length ? l[l.length - 1].target : 30 }); saveLeagues(l); drawRoster(); const n = document.querySelectorAll('#roster-view .lg-name'); if (n.length) n[n.length - 1].focus(); }
+    else if (t.classList.contains('lg-x')) { const l = readLgs(); l.splice(+t.dataset.i, 1); saveLeagues(l); drawRoster(); }
     else if (t.id === 'ro-add') { const l = readRows(); l.push({ name: '', league: l.length ? l[l.length - 1].league : 'A1' }); saveList(l); drawRoster(); const n = document.querySelectorAll('#roster-view .ro-name'); if (n.length) n[n.length - 1].focus(); }
-    else if (t.classList.contains('ro-x')) { const l = readRows(); l.splice(+t.dataset.i, 1); saveList(l); drawRoster(); }
+    else if (t.classList.contains('ro-x') && !t.classList.contains('lg-x')) { const l = readRows(); l.splice(+t.dataset.i, 1); saveList(l); drawRoster(); }
     else if (t.id === 'ro-import') {
       let S = null; try { S = $('f-viewer').contentWindow.__SCHED; } catch (err) {}
       if (!S) { alert('日程データを読み込めませんでした。'); return; }
