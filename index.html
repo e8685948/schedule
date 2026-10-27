@@ -237,6 +237,7 @@
     display: flex; flex-direction: column; min-width: 0;
     transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
   }
+  .day.wide { grid-column: 1 / -1; }
   .day.blank { background: transparent; border: 1px dashed rgba(139,40,24,0.12); }
   .day.none { opacity: 0.45; }
   .day.has-match { background: rgba(255,250,240,0.85); border-color: #8b2818; }
@@ -728,6 +729,50 @@
   }
 
 
+  /* ===== 通常のカレンダー表示（日〜土の7列） ===== */
+  .weekdays, .days { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; gap: 3px !important; }
+  .weekday { padding: 6px 0 !important; font-size: 11px !important; letter-spacing: 0 !important; }
+  .day { min-height: 66px !important; padding: 3px 2px !important; border-radius: 6px !important; }
+  .day.blank { border: none; background: transparent; min-height: 0 !important; }
+  .day.none { opacity: 0.7; }
+  .day-num { font-size: 13px !important; margin-bottom: 3px !important; padding-bottom: 2px !important; justify-content: center !important; border-bottom: 1px dashed rgba(139,40,24,0.25); }
+  .day .leagues { gap: 2px !important; }
+  .league-row.mini { display: flex; flex-direction: column; align-items: stretch; gap: 0 !important; text-align: center; }
+  .mini-badge { display: block; font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 9px; line-height: 1.3; padding: 1px 0; border-radius: 3px; color: #fef9ed; }
+  .mini-badge.a1 { background: #8b2818; } .mini-badge.a2 { background: #1a3a5c; }
+  .mini-time { font-size: 9px; line-height: 1.3; color: #3a2818; white-space: nowrap; overflow: hidden; }
+  .rest-label, .study-label { margin-top: 2px !important; font-size: 10px !important; letter-spacing: 0 !important; line-height: 1.25; }
+  .mini-ev { font-size: 8px !important; padding: 1px 2px !important; line-height: 1.2; border-left-width: 1px; }
+  .day.me-day { background: rgba(224,58,30,0.12) !important; border: 2px solid #e03a1e !important; box-shadow: 0 0 6px rgba(224,58,30,0.5); }
+  .day.me-day .day-num { color: #e03a1e !important; -webkit-text-fill-color: #e03a1e !important; }
+  .day.me-day .day-num::after { content: '★'; margin-left: 1px; padding: 0; background: none; color: #e03a1e; font-size: 9px; }
+
+  /* ===== カレンダーを1画面に収める ===== */
+  body.view-cal #view-swipe, body.view-cal #legend { display: none !important; }
+  body.view-cal #view-calendar.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  body.view-cal .weekdays { flex-shrink: 0; margin-bottom: 3px; }
+  body.view-cal .weekday { padding: 3px 0 !important; }
+  body.view-cal .days { flex: 1; min-height: 0; grid-auto-rows: minmax(0, 1fr); }
+  body.view-cal .day { min-height: 0 !important; overflow: hidden; padding: 2px 1px !important; }
+  body.view-cal .day-num { font-size: 12px !important; margin-bottom: 1px !important; padding-bottom: 1px !important; line-height: 1.1; }
+  body.view-cal .league-row.mini { flex-direction: row; align-items: center; justify-content: center; gap: 2px !important; }
+  body.view-cal .mini-badge { display: inline-block; font-size: 8px; padding: 1px 2px; }
+  body.view-cal .mini-time { font-size: 8.5px; }
+  body.view-cal .day .leagues { gap: 1px !important; }
+  body.view-cal .rest-label, body.view-cal .study-label { margin-top: 0 !important; font-size: 9px !important; }
+  body.view-cal #me-filter { display: none !important; }
+  body.view-cal .month-select { display: flex !important; margin-top: 4px; gap: 6px; }
+  body.view-cal .month-select select { min-height: 28px !important; padding: 2px 6px; font-size: 12px; }
+  body.view-cal .month-select .select-hint { display: none; }
+
+  .me-name-link { background: none; border: none; color: #fef9ed; font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 13px; padding: 2px 0; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+  body.view-cal .me-info { flex-wrap: nowrap; padding: 4px 8px; }
+  body.view-cal .me-text { flex-basis: auto; }
+  body.view-cal .search-input { min-height: 34px; }
+  body.view-cal .tab, body.view-cal .filter-btn { min-height: 32px; }
+  body.view-cal .month-btn { min-height: 30px; height: 30px; }
+  body.view-cal .me-bar { margin-bottom: 4px; }
+  body.view-cal .day-num { border-bottom: none; margin-bottom: 0 !important; }
   /* iOS Safari text-rendering fallback: explicitly restore visible text colors */
   .day-num, .cal-name, .player-name, .wd-label, .league-badge, .league-time,
   .cal-event, .rest-label, .study-label, .player, .cal-player {
@@ -746,7 +791,7 @@
 
   /* 縦書きの名前：高さ・幅を明示（iOS Safariで縦書きの高さが0になるのを防ぐ） */
   .cal-name, .player-name {
-    display: block; flex: none; line-height: 1.25;
+    display: block; flex: none; line-height: 1.25; text-align: start; overflow: visible;
     width: 1.25em; white-space: nowrap; height: calc(var(--n, 3) * (1.05em + var(--ls, 0px)));
     letter-spacing: var(--ls, 0px) !important;
   }
@@ -754,7 +799,7 @@
   @media (min-width: 601px) { .player-name { --ls: 2px; } }
 </style>
 </head>
-<body>
+<body class="mode-swipe view-cal">
   <div class="poster">
     <div class="corner tl"></div><div class="corner tr"></div>
     <div class="corner bl"></div><div class="corner br"></div>
@@ -970,7 +1015,7 @@ const seatHTML = (mt, p, i, cls) => { const s = seatOfP(mt, p, i); return s ? `<
 const eventsHTML = (entry, cls) => (entry.events || []).map(ev =>
   `<div class="${cls}"><b>${esc(ev.label)}</b>${ev.time ? esc(ev.time) : ''}</div>`).join('');
 // 縦書きの高さ計算用：全角=1、半角英数は少し長め
-const nameUnits = p => [...p].reduce((a, c) => a + (c.charCodeAt(0) < 128 ? 1.25 : 1), 0);
+const nameUnits = p => [...p].reduce((a, c) => a + (1), 0);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 const keys = Object.keys(SCHEDULE).sort();
@@ -993,25 +1038,24 @@ function onlyClass(entry) {
   return entry.type === 'study' && entry.league ? ' only-' + entry.league.toLowerCase() : '';
 }
 
-function calCell(y, m, d, entry, label) {
+function calCell(y, m, d, entry) {
   const w = dow(y, m, d);
-  const num = `<div class="day-num ${wdClass(w)}">${label || d}</div>`;
+  const num = `<div class="day-num ${wdClass(w)}">${d}</div>`;
   if (!entry) return `<div class="day none">${num}</div>`;
-  if (entry.type === 'rest') return `<div class="day rest clickable" data-date="${d}">${num}<div class="rest-label">休 場</div></div>`;
+  if (entry.type === 'rest') return `<div class="day rest clickable" data-date="${d}">${num}<div class="rest-label">休</div></div>`;
   if (entry.type === 'study') {
     const short = entry.label.replace(/^A[12]リーグ/, '');
-    return `<div class="day study clickable${onlyClass(entry)}" data-date="${d}">${num}<div class="study-label">${esc(short)}<span class="time-line">${esc(entry.time)}</span></div></div>`;
+    return `<div class="day study clickable${onlyClass(entry)}" data-date="${d}">${num}<div class="study-label">${esc(short)}</div></div>`;
   }
   const rows = entry.matches.map(mt => {
     const lg = mt.league.toLowerCase();
-    const cards = mt.players.map((p, i) =>
-      `<div class="cal-player">${seatHTML(mt, p, i, 'cal-seat')}<div class="cal-name" data-name="${esc(p)}" style="--n:${nameUnits(p)}">${esc(p)}</div>${extras(mt, p, true)}</div>`).join('');
-    const info = mt.time ? esc(mt.time.split('—')[0].trim()) : `${mt.hanchan}半荘`;
-    return `<div class="league-row is-${lg}"><div class="league-row-header"><div class="league-badge ${lg}"${mt.color ? ` style="background:${mt.color}"` : ''}>${mt.league}</div><div class="league-time">${info}</div></div><div class="league-players" style="--cols:${colsOf(mt.players.length, true)}">${cards}</div>${staffLine(mt)}</div>`;
+    const info = mt.time ? esc(mt.time.split('—')[0].replace('〜', '').trim()) : `${mt.hanchan}半荘`;
+    return `<div class="league-row is-${lg} mini"><span class="mini-badge ${lg}"${mt.color ? ` style="background:${mt.color}"` : ''}>${esc(mt.league)}</span><span class="mini-time">${info}</span></div>`;
   }).join('');
-  const ev = eventsHTML(entry, 'cal-event');
+  const ev = (entry.events || []).map(e => `<div class="cal-event mini-ev">${esc(e.label)}</div>`).join('');
+  const names = esc(entry.matches.flatMap(mt => mt.players).join('\t'));
   const cls = rows ? 'has-match' : 'study';
-  return `<div class="day ${cls} clickable" data-date="${d}">${num}<div class="leagues">${rows}${ev}</div></div>`;
+  return `<div class="day ${cls} clickable" data-date="${d}" data-players="${names}">${num}<div class="leagues">${rows}${ev}</div></div>`;
 }
 
 function slideCard(y, m, entry) {
@@ -1061,21 +1105,10 @@ function render() {
       if ((w === 6 || w === 0) && !byDate[d]) { byDate[d] = { date: d, type: 'rest' }; days.push(byDate[d]); }
     }
     let cells = '';
-    let started = false;
-    let weekdayCells = '';
-    for (let d = 1; d <= last; d++) {
-      const w = dow(curY, curM, d);
-      if (w !== 6 && w !== 0) {
-        if (byDate[d]) weekdayCells += calCell(curY, curM, d, byDate[d], `${d}<span class="wd-label">(${WD[w]})</span>`);
-        continue;
-      }
-      if (!started && w === 0) cells += '<div class="day blank"></div>';
-      started = true;
-      cells += calCell(curY, curM, d, byDate[d]);
-    }
-    cal.innerHTML = `<div class="weekdays"><div class="weekday sat">土</div><div class="weekday sun">日</div></div>
-      <div class="days">${cells}</div>
-      ${weekdayCells ? `<div class="weekday-head">平日開催</div><div class="days">${weekdayCells}</div>` : ''}`;
+    for (let i = 0; i < dow(curY, curM, 1); i++) cells += '<div class="day blank"></div>';
+    for (let d = 1; d <= last; d++) cells += calCell(curY, curM, d, byDate[d]);
+    cal.innerHTML = `<div class="weekdays">${WD.map((n, i) => `<div class="weekday ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${n}</div>`).join('')}</div>
+      <div class="days">${cells}</div>`;
     days.sort((a, b) => a.date - b.date);
     monthDays = days;
     let list = days;
@@ -1131,7 +1164,8 @@ $('sel-month').addEventListener('change', e => goMonth(curY, +e.target.value));
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + tab.dataset.view));
-  document.body.classList.toggle('mode-swipe', tab.dataset.view === 'swipe');
+  document.body.classList.add('mode-swipe');
+  document.body.classList.toggle('view-cal', tab.dataset.view === 'calendar');
   window.scrollTo(0, 0);
   requestAnimationFrame(equalizeAll);
 }));
@@ -1225,6 +1259,18 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') stepSlide(-1);
   if (e.key === 'ArrowRight') stepSlide(1);
 });
+
+
+/* ---------- カレンダーを左右スワイプで月移動 ---------- */
+(function () {
+  const el = $('view-calendar'); let x0 = 0, y0 = 0, on = false;
+  el.addEventListener('touchstart', e => { if (e.touches.length !== 1) return; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; on = true; }, { passive: true });
+  el.addEventListener('touchend', e => {
+    if (!on) return; on = false;
+    const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) goMonth(curY, curM + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+})();
 
 /* ---------- 全画面モーダル ---------- */
 function openModal(date) {
@@ -1401,6 +1447,9 @@ function applyMe() {
     const day = n.closest('.day');
     if (day) day.classList.add('me-day');
   });
+  document.querySelectorAll('#view-calendar .day[data-players]').forEach(d => {
+    if (d.dataset.players.split('\t').includes(me)) d.classList.add('me-day');
+  });
   const apps = myAppearances();
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1419,14 +1468,11 @@ function applyMe() {
   else meTarget = next || (apps.length ? apps[apps.length - 1] : null);
 
   bar.innerHTML = `<div class="me-info">
-      <div class="me-text"><span class="me-name">★ ${esc(me)}</span>　${curM}月の出番 ${monthCount}日<span class="me-next">${line}</span></div>
-      ${meTarget ? '<button class="me-btn" id="me-go">見る</button>' : ''}
+      <div class="me-text"><button class="me-name-link" id="me-open" aria-label="名前を変更">★ ${esc(me)} ▾</button>　${curM}月の出番 ${monthCount}日</div>
       <button class="me-btn sub" id="me-filter">${myOnly ? '全日表示' : '出番のみ'}</button>
-      <button class="me-btn sub" id="me-open">変更</button>
     </div>`;
   $('me-filter').onclick = () => { myOnly = !myOnly; render(); };
   $('me-open').onclick = openMePicker;
-  if (meTarget) $('me-go').onclick = () => showMyDay(meTarget);
   requestAnimationFrame(fitSlides);
 }
 function showMyDay(a) {
