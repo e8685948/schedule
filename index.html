@@ -3255,6 +3255,57 @@ render();
     if (n) { lsSet(K_PREVIEW, JSON.stringify(out)); rosterDirty = true; }
     return n;
   }
+  /* ---------- 年度の集計をExcelに出力（カレンダーの日程から読み取る） ---------- */
+  function loadXlsx() {
+    return new Promise((ok, ng) => {
+      if (window.XLSX) return ok();
+      const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload = ok; sc.onerror = () => ng(new Error('load')); document.head.appendChild(sc);
+    });
+  }
+  async function exportStats() {
+    let S = null; try { S = $('f-viewer').contentWindow.__SCHED; } catch (e) {}
+    if (!S) { noteRo('日程データを読み込めませんでした。'); return; }
+    try { await loadXlsx(); } catch (e) { noteRo('Excel出力の部品を読み込めませんでした（通信を確認してください）。'); return; }
+    const y = rosterYear, SEAT = ['東', '南', '西', '北', '替'], WDJ = '日月火水木金土';
+    const keys = Object.keys(S).filter(k => k.slice(0, 4) === y).sort();
+    const lgOf = {}; (effRoster()[y] || []).forEach(p => { if (p.name) lgOf[p.name] = p.league || ''; });
+    const P = {}, pair = {}, rows = [];
+    const get = n => P[n] || (P[n] = { league: lgOf[n] || '', games: 0, han: 0, seat: { 東: 0, 南: 0, 西: 0, 北: 0, 替: 0 }, comm: 0, sw: 0, months: {} });
+    keys.forEach(k => {
+      const mo = +k.slice(5, 7);
+      (S[k].days || []).forEach(d => (d.matches || []).forEach(mt => {
+        const pl = mt.players || [];
+        pl.forEach(p => {
+          const o = get(p); if (!o.league) o.league = mt.league || '';
+          o.games++; o.months[mo] = (o.months[mo] || 0) + 1;
+          o.han += (mt.counts && mt.counts[p]) || mt.hanchan || 0;
+          const st = mt.seatOf && mt.seatOf[p]; if (st && o.seat[st] !== undefined) o.seat[st]++;
+        });
+        for (let i = 0; i < pl.length; i++) for (let j = i + 1; j < pl.length; j++) {
+          const a = pl[i], b = pl[j]; (pair[a] = pair[a] || {})[b] = ((pair[a] || {})[b] || 0) + 1; (pair[b] = pair[b] || {})[a] = ((pair[b] || {})[a] || 0) + 1;
+        }
+        const st = mt.staff;
+        if (st) { (st.commentary || []).forEach(p => { get(p).comm++; }); if (st.switcher) get(st.switcher).sw++; }
+        rows.push([`${y}-${String(mo).padStart(2, '0')}-${String(d.date).padStart(2, '0')}`, WDJ[new Date(+y, mo - 1, d.date).getDay()], mt.league, mt.time || '', mt.hanchan || '',
+          ...SEAT.slice(0, 4).map(x => pl.filter(p => mt.seatOf && mt.seatOf[p] === x).join('・')), pl.filter(p => mt.seatOf && mt.seatOf[p] === '替').join('・'),
+          st ? (st.commentary || []).join('・') : '', st && st.switcher ? st.switcher : '']);
+      }));
+    });
+    const names = Object.keys(P).sort((a, b) => (P[a].league || '').localeCompare(P[b].league || '', 'ja') || a.localeCompare(b, 'ja'));
+    if (!names.length) { noteRo(y + '年の日程に試合がありません。'); return; }
+    const wb = XLSX.utils.book_new(), add = (name, aoa, wch) => { const ws = XLSX.utils.aoa_to_sheet(aoa); if (wch) ws['!cols'] = wch.map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, ws, name); };
+    add('選手別集計', [['選手', 'リーグ', '試合数(セッション)', '半荘数', '東', '南', '西', '北', '替(ローテ)', '実況・解説', 'スイッチャー'],
+      ...names.map(n => { const o = P[n]; return [n, o.league, o.games, o.han, o.seat.東, o.seat.南, o.seat.西, o.seat.北, o.seat.替, o.comm, o.sw]; })], [16, 10, 16, 8, 6, 6, 6, 6, 12, 12, 12]);
+    add('同卓回数', [['', ...names], ...names.map(a => [a, ...names.map(b => a === b ? '' : ((pair[a] || {})[b] || 0))])], [16, ...names.map(() => 6)]);
+    add('月別出場', [['選手', 'リーグ', ...Array.from({ length: 12 }, (_, i) => (i + 1) + '月'), '合計'],
+      ...names.map(n => { const o = P[n]; return [n, o.league, ...Array.from({ length: 12 }, (_, i) => o.months[i + 1] || 0), o.games]; })], [16, 10, ...Array(13).fill(6)]);
+    add('日程一覧', [['日付', '曜日', 'リーグ', '時間', '半荘', '東', '南', '西', '北', '替', '実況・解説', 'スイッチャー'], ...rows], [12, 6, 8, 14, 6, 14, 14, 14, 14, 16, 18, 12]);
+    const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([out], { type: 'application/octet-stream' })); a.download = y + '年度_集計.xlsx';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    noteRo(y + '年度の集計を出力しました（' + names.length + '名・' + rows.length + '試合）。');
+  }
   function noteRo(t) { const el = $('ro-note'); if (el) el.textContent = t; }
 
   /* ---------- 選手登録（年度ごと） ---------- */
@@ -3290,6 +3341,7 @@ render();
       <div class="ro-bulkbar"><button class="ro-btn sub" id="ro-all">表示中を全選択／解除</button><span>選択した選手を</span><select id="ro-bulk-lg">${lgOpts('')}</select><button class="ro-btn" id="ro-move">に移す</button></div>
       ${list.map((p, i) => `<div class="ro-row" data-lg="${esc(p.league || '')}" style="${rosterFilter !== '' && (p.league || '') !== (rosterFilter === '__none' ? '' : rosterFilter) ? 'display:none' : ''}"><input type="checkbox" class="ro-chk"><input class="ro-name" placeholder="選手名" value="${esc(p.name)}" data-orig="${esc(p.name)}"><select class="ro-lg">${lgOpts(p.league || '')}</select><button class="ro-x" data-i="${i}" aria-label="削除">✕</button></div>`).join('') || '<div>まだ登録がありません。</div>'}
       <div class="ro-actions"><button class="ro-btn" id="ro-add">＋ 選手を追加</button><button class="ro-btn sub" id="ro-import">日程データから取り込む</button></div>
+      <div class="ro-actions" style="margin-top:6px"><button class="ro-btn" id="ro-xlsx">📊 ${rosterYear}年度の集計をExcel出力</button></div>
       <details><summary>一括貼り付け（1行に「名前,リーグ」）</summary><textarea id="ro-bulk" rows="6" style="width:100%;margin-top:6px" placeholder="山田太郎,A1&#10;鈴木花子,A2"></textarea><button class="ro-btn sub" id="ro-bulk-go" style="margin-top:6px">取り込む</button></details>
       <div id="ro-note" style="margin-top:10px;font-size:12px;font-weight:700;color:#8b2818"></div>
       <div style="margin-top:12px;font-size:12px;color:#5a4a3a">変更は自動で保存されます。会員に反映するには、上の「公開」を押してください。</div>`;
@@ -3330,6 +3382,7 @@ render();
       picked.forEach(r => { r.querySelector('.ro-lg').value = to; });
       saveList(readRows()); drawRoster(); return;
     }
+    if (t.id === 'ro-xlsx') { exportStats(); return; }
     if (t.id === 'ro-newyear') { const y = ($('ro-newyear-in').value || '').trim(); if (/^\d{4}$/.test(y)) { rosterYear = y; rosterFilter = ''; if (!(effRoster()[y])) saveList([]); drawRoster(); } else alert('西暦4桁で入力してください（例：2028）。'); }
     else if (t.id === 'lg-add') { const l = readLgs(); l.push({ name: '', target: l.length ? l[l.length - 1].target : 30 }); saveLeagues(l); drawRoster(); const n = document.querySelectorAll('#roster-view .lg-name'); if (n.length) n[n.length - 1].focus(); }
     else if (t.classList.contains('lg-x')) { const l = readLgs(); l.splice(+t.dataset.i, 1); saveLeagues(l); drawRoster(); }
